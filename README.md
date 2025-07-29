@@ -42,6 +42,23 @@ make format  # Format code with black and isort
 make lint    # Check code style
 ```
 
+## Tutorials
+
+Comprehensive tutorials are available in the `examples/tutorials/` directory:
+
+1. **[Setup and Installation](examples/tutorials/01_setup_and_installation.ipynb)** - Getting started with AILib
+2. **[Basic LLM Completions](examples/tutorials/02_basic_llm_completions.ipynb)** - Making your first API calls
+3. **[Prompt Templates](examples/tutorials/03_prompt_templates.ipynb)** - Building dynamic prompts
+4. **[Prompt Builder](examples/tutorials/04_prompt_builder.ipynb)** - Constructing conversations programmatically
+5. **[Session Management](examples/tutorials/05_session_management.ipynb)** - Managing conversation state
+6. **[Chains](examples/tutorials/06_chains.ipynb)** - Building sequential workflows
+7. **[Tools and Decorators](examples/tutorials/07_tools_and_decorators.ipynb)** - Creating reusable tools
+8. **[Agents](examples/tutorials/08_agents.ipynb)** - Building autonomous AI agents
+9. **[Advanced Features](examples/tutorials/09_advanced_features.ipynb)** - Async, streaming, and optimization
+10. **[Real-World Examples](examples/tutorials/10_real_world_examples.ipynb)** - Complete applications
+
+Start with the **[Tutorial Index](examples/tutorials/00_index.ipynb)** for a guided learning path.
+
 ## Quick Start
 
 ### Simple Completion
