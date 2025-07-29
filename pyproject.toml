@@ -17,7 +17,12 @@ classifiers = [
 ]
 license = {text = "MIT"}
 dependencies = [
-  "typer"
+  "typer",
+  "openai>=1.0.0",
+  "pydantic>=2.0.0",
+  "httpx>=0.25.0",
+  "tiktoken>=0.5.0",
+  "rich>=13.0.0",
 ]
 requires-python = ">= 3.10"
 
@@ -27,8 +32,24 @@ dynamic = ["version"]
 test = [
     "coverage",  # testing
     "pytest",  # testing
+    "pytest-asyncio",  # async testing
+    "pytest-mock",  # mocking
     "ruff",  # linting
-    "ty", # checking types
+    "mypy",  # type checking
+    "types-python-dateutil",  # type stubs
+]
+
+dev = [
+    "ipython",  # interactive shell
+    "jupyter",  # notebooks
+    "black",  # formatting
+    "isort",  # import sorting
+]
+
+tracing = [
+    "opentelemetry-api",
+    "opentelemetry-sdk",
+    "opentelemetry-exporter-otlp",
 ]
 
 [project.urls]
