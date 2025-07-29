@@ -2,6 +2,7 @@
 
 import re
 
+from ..validation import MessageConfig, PromptTemplateConfig
 from .llm_client import Message, Role
 
 
@@ -15,9 +16,15 @@ class PromptTemplate:
             template: Template string with {variable} placeholders
             role: Default role for messages created from this template
         """
-        self.template = template
+        # Extract variables first
+        variables = self._extract_variables(template)
+
+        # Validate template configuration
+        config = PromptTemplateConfig(template=template, input_variables=variables)
+
+        self.template = config.template
         self.role = role
-        self._variables = self._extract_variables(template)
+        self._variables = config.input_variables
 
     def _extract_variables(self, template: str) -> list[str]:
         """Extract variable names from template.
@@ -105,6 +112,9 @@ class Prompt:
         Returns:
             Self for chaining
         """
+        # Validate message configuration
+        MessageConfig(role=role.value, content=content, **kwargs)
+
         message = Message(role=role, content=content, **kwargs)
         self._messages.append(message)
         return self

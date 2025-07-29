@@ -4,28 +4,43 @@ from datetime import datetime
 from typing import Any
 from uuid import uuid4
 
+from ..validation import SessionConfig
 from .llm_client import Message, Role
 
 
 class Session:
     """Manages conversation state and memory across interactions."""
 
-    def __init__(self, session_id: str | None = None, max_history: int | None = None):
+    def __init__(
+        self, session_id: str | None = None, max_history: int | None = None, **kwargs
+    ):
         """Initialize a new session.
 
         Args:
             session_id: Unique session identifier (auto-generated if not provided)
             max_history: Maximum number of messages to keep in history
+            **kwargs: Additional session configuration
         """
-        self.session_id = session_id or str(uuid4())
-        self.max_history = max_history
+        # Validate configuration
+        config = SessionConfig(
+            session_id=session_id or str(uuid4()),
+            max_messages=max_history or kwargs.get("max_messages", 100),
+            ttl=kwargs.get("ttl"),
+            metadata=kwargs.get("metadata", {}),
+            auto_save=kwargs.get("auto_save", False),
+            save_path=kwargs.get("save_path"),
+        )
+
+        self.session_id = config.session_id
+        self.max_history = config.max_messages
         self.created_at = datetime.utcnow()
+        self._config = config
 
         # Conversation history
         self._messages: list[Message] = []
 
         # Session metadata
-        self.metadata: dict[str, Any] = {}
+        self.metadata: dict[str, Any] = config.metadata
 
         # Memory storage for key-value pairs
         self._memory: dict[str, Any] = {}

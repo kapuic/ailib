@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from ..core import LLMClient, Message, PromptTemplate, Role, Session
+from ..validation import ChainConfig
 
 
 @dataclass
@@ -23,18 +24,34 @@ class ChainStep:
 class Chain:
     """Fluent API for chaining LLM calls."""
 
-    def __init__(self, llm: LLMClient | None = None, session: Session | None = None):
+    def __init__(
+        self, llm: LLMClient | None = None, session: Session | None = None, **kwargs
+    ):
         """Initialize a new chain.
 
         Args:
             llm: LLM client to use (can be set later)
             session: Session for state management
+            **kwargs: Additional chain configuration
         """
+        # Validate configuration
+        config = ChainConfig(
+            name=kwargs.get("name", "chain"),
+            description=kwargs.get("description", ""),
+            max_iterations=kwargs.get("max_iterations", 10),
+            early_stopping=kwargs.get("early_stopping", True),
+            retry_attempts=kwargs.get("retry_attempts", 3),
+            retry_delay=kwargs.get("retry_delay", 1.0),
+            timeout=kwargs.get("timeout"),
+            verbose=kwargs.get("verbose", False),
+        )
+
         self.llm = llm
         self.session = session or Session()
         self._steps: list[ChainStep] = []
         self._context: dict[str, Any] = {}
-        self._verbose = False
+        self._config = config
+        self._verbose = config.verbose
 
     def with_llm(self, llm: LLMClient) -> "Chain":
         """Set the LLM client.

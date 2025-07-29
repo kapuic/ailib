@@ -21,6 +21,20 @@ from .core import (
     Session,
 )
 
+# Validation imports
+from .validation import (
+    AgentConfig,
+    ChainConfig,
+    LLMConfig,
+    MessageConfig,
+    PromptTemplateConfig,
+    SafetyConfig,
+    SessionConfig,
+    ToolConfig,
+    ToolParameterSchema,
+    create_dynamic_model,
+)
+
 __all__ = [
     # Core
     "LLMClient",
@@ -38,4 +52,15 @@ __all__ = [
     "Tool",
     "ToolRegistry",
     "tool",
+    # Validation
+    "AgentConfig",
+    "ChainConfig",
+    "LLMConfig",
+    "MessageConfig",
+    "PromptTemplateConfig",
+    "SafetyConfig",
+    "SessionConfig",
+    "ToolConfig",
+    "ToolParameterSchema",
+    "create_dynamic_model",
 ]

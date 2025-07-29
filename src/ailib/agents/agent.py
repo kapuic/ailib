@@ -6,6 +6,7 @@ from collections.abc import Callable
 from typing import Any
 
 from ..core import LLMClient, Message, Role, Session
+from ..validation import AgentConfig
 from .tools import Tool, ToolRegistry, get_global_registry
 
 
@@ -18,6 +19,7 @@ class Agent:
         tools: list[Tool] | ToolRegistry | None = None,
         max_steps: int = 10,
         verbose: bool = False,
+        **kwargs,
     ):
         """Initialize agent.
 
@@ -26,10 +28,26 @@ class Agent:
             tools: List of tools or ToolRegistry
             max_steps: Maximum number of reasoning steps
             verbose: Enable verbose output
+            **kwargs: Additional agent configuration
         """
+        # Validate configuration
+        config = AgentConfig(
+            name=kwargs.get("name", "agent"),
+            description=kwargs.get("description", ""),
+            model=llm.model if llm else kwargs.get("model", "gpt-4"),
+            system_prompt=kwargs.get("system_prompt"),
+            tools=[],  # Will be filled based on actual tools
+            max_iterations=max_steps,
+            temperature=kwargs.get("temperature", 0.7),
+            verbose=verbose,
+            memory_size=kwargs.get("memory_size", 10),
+            return_intermediate_steps=kwargs.get("return_intermediate_steps", False),
+        )
+
         self.llm = llm
-        self.max_steps = max_steps
-        self.verbose = verbose
+        self.max_steps = config.max_iterations
+        self.verbose = config.verbose
+        self._config = config
 
         # Set up tool registry
         if tools is None:

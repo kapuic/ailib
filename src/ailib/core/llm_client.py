@@ -9,6 +9,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
+from ..validation import LLMConfig
+
 
 class Role(Enum):
     """Message roles in a conversation."""
@@ -62,8 +64,10 @@ class LLMClient(ABC):
             model: Model name/identifier
             **kwargs: Additional client-specific parameters
         """
-        self.model = model
-        self.config = kwargs
+        # Validate configuration
+        config = LLMConfig(model=model, **kwargs)
+        self.model = config.model
+        self.config = config.model_dump(exclude={"model"})
 
     @abstractmethod
     def complete(
