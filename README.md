@@ -4,18 +4,42 @@ A simple, intuitive Python SDK for building LLM-powered applications with chains
 
 ## Features
 
-- 🔗 **Chains**: Sequential prompt execution with fluent API
-- 🤖 **Agents**: ReAct-style autonomous agents with tool usage
-- 🛠️ **Tools**: Easy tool creation with decorators and type safety
-- 📝 **Templates**: Powerful prompt templating system
-- 💾 **Sessions**: Conversation state and memory management
-- 🔒 **Type Safety**: Full type hints and Pydantic integration
-- ⚡ **Async Support**: Both sync and async APIs
+-   🔗 **Chains**: Sequential prompt execution with fluent API
+-   🤖 **Agents**: ReAct-style autonomous agents with tool usage
+-   🛠️ **Tools**: Easy tool creation with decorators and type safety
+-   📝 **Templates**: Powerful prompt templating system
+-   💾 **Sessions**: Conversation state and memory management
+-   🔒 **Type Safety**: Full type hints and Pydantic integration
+-   ⚡ **Async Support**: Both sync and async APIs
 
 ## Installation
 
 ```bash
 pip install ailib
+```
+
+### Development Setup
+
+For development, clone the repository and install with development dependencies:
+
+```bash
+# Clone the repository
+git clone https://github.com/kapuic/ailib.git
+cd ailib
+
+# Create virtual environment with uv (recommended)
+uv venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# Install in development mode with all dependencies
+uv pip install -e ".[dev,test]"
+
+# Install pre-commit hooks
+pre-commit install
+
+# Run formatters and linters
+make format  # Format code with black and isort
+make lint    # Check code style
 ```
 
 ## Quick Start
@@ -115,8 +139,8 @@ session.set_memory("level", "beginner")
 
 The SDK provides an abstract `LLMClient` interface with implementations for different providers:
 
-- `OpenAIClient`: OpenAI GPT models (GPT-4, GPT-3.5-turbo, etc.)
-- Easy to extend with custom implementations
+-   `OpenAIClient`: OpenAI GPT models (GPT-4, GPT-3.5-turbo, etc.)
+-   Easy to extend with custom implementations
 
 ### Prompt Templates
 
@@ -147,9 +171,10 @@ chain = (Chain(client)
 ### Tools and Agents
 
 Tools are functions that agents can use. The `@tool` decorator automatically:
-- Extracts function documentation
-- Infers parameter types
-- Handles validation with Pydantic
+
+-   Extracts function documentation
+-   Infers parameter types
+-   Handles validation with Pydantic
 
 ```python
 @tool
@@ -202,15 +227,17 @@ agent = Agent(llm=client, tools=registry)
 ## Best Practices
 
 1. **Use environment variables** for API keys:
-   ```bash
-   export OPENAI_API_KEY="your-key"
-   ```
+
+    ```bash
+    export OPENAI_API_KEY="your-key"
+    ```
 
 2. **Enable verbose mode** for debugging:
-   ```python
-   chain.verbose(True)
-   agent = Agent(llm=client, verbose=True)
-   ```
+
+    ```python
+    chain.verbose(True)
+    agent = Agent(llm=client, verbose=True)
+    ```
 
 3. **Set appropriate max_steps** for agents to prevent infinite loops
 
@@ -220,8 +247,8 @@ agent = Agent(llm=client, tools=registry)
 
 ## Requirements
 
-- Python >= 3.10
-- OpenAI API key (for OpenAI models)
+-   Python >= 3.10
+-   OpenAI API key (for OpenAI models)
 
 ## License
 

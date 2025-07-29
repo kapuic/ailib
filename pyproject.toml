@@ -81,8 +81,16 @@ match = ["tests/**.py"]
 rules.TY016 = "ignore"  # Ignore invalid-assignment in tests, e.g., for dynamic fixtures.
 rules.TY029 = "ignore"  # Ignore invalid-return-type in tests.
 
+[tool.black]
+# Using Black's default line length of 88 (Pythonic best practice)
+# No configuration needed - Black's defaults are perfect!
+
+[tool.isort]
+profile = "black"
+
 [tool.ruff]
-line-length = 120
+# Using Black's default line length
+line-length = 88
 
 [tool.ruff.lint]
 select = [

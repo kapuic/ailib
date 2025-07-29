@@ -48,7 +48,16 @@ clean-test: ## remove test and coverage artifacts
 	rm -fr htmlcov/
 	rm -fr .pytest_cache
 
-ruff: ## check style
+format: ## format code with black and isort
+	black src tests
+	isort src tests
+
+lint: ## check style with ruff and black
+	black --check src tests
+	isort --check-only src tests
+	ruff check src tests
+
+ruff: ## check style with ruff only
 	ruff check
 
 test: ## run tests quickly with the default Python

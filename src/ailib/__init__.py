@@ -1,8 +1,14 @@
 """Top-level package for AILib."""
 
 __author__ = """Kapui Cheung"""
-__email__ = 'dev@kapui.net'
-__version__ = '0.1.0'
+__email__ = "dev@kapui.net"
+__version__ = "0.1.0"
+
+# Agents imports
+from .agents import Agent, Tool, ToolRegistry, tool
+
+# Chains imports
+from .chains import Chain, ChainStep
 
 # Core imports
 from .core import (
@@ -14,12 +20,6 @@ from .core import (
     Role,
     Session,
 )
-
-# Chains imports
-from .chains import Chain, ChainStep
-
-# Agents imports
-from .agents import Agent, Tool, ToolRegistry, tool
 
 __all__ = [
     # Core

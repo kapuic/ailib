@@ -12,9 +12,9 @@ Report bugs at https://github.com/kapuic/ailib/issues.
 
 If you are reporting a bug, please include:
 
-- Your operating system name and version.
-- Any details about your local setup that might be helpful in troubleshooting.
-- Detailed steps to reproduce the bug.
+-   Your operating system name and version.
+-   Any details about your local setup that might be helpful in troubleshooting.
+-   Detailed steps to reproduce the bug.
 
 ### Fix Bugs
 
@@ -34,9 +34,9 @@ The best way to send feedback is to file an issue at https://github.com/kapuic/a
 
 If you are proposing a feature:
 
-- Explain in detail how it would work.
-- Keep the scope as narrow as possible, to make it easier to implement.
-- Remember that this is a volunteer-driven project, and that contributions are welcome :)
+-   Explain in detail how it would work.
+-   Keep the scope as narrow as possible, to make it easier to implement.
+-   Remember that this is a volunteer-driven project, and that contributions are welcome :)
 
 ## Get Started!
 
@@ -45,44 +45,44 @@ Ready to contribute? Here's how to set up `ailib` for local development.
 1. Fork the `ailib` repo on GitHub.
 2. Clone your fork locally:
 
-   ```sh
-   git clone git@github.com:your_name_here/ailib.git
-   ```
+    ```sh
+    git clone git@github.com:your_name_here/ailib.git
+    ```
 
 3. Install your local copy into a virtualenv. Assuming you have virtualenvwrapper installed, this is how you set up your fork for local development:
 
-   ```sh
-   mkvirtualenv ailib
-   cd ailib/
-   python setup.py develop
-   ```
+    ```sh
+    mkvirtualenv ailib
+    cd ailib/
+    python setup.py develop
+    ```
 
 4. Create a branch for local development:
 
-   ```sh
-   git checkout -b name-of-your-bugfix-or-feature
-   ```
+    ```sh
+    git checkout -b name-of-your-bugfix-or-feature
+    ```
 
-   Now you can make your changes locally.
+    Now you can make your changes locally.
 
 5. When you're done making changes, check that your changes pass flake8 and the tests, including testing other Python versions with tox:
 
-   ```sh
-   make lint
-   make test
-   # Or
-   make test-all
-   ```
+    ```sh
+    make lint
+    make test
+    # Or
+    make test-all
+    ```
 
-   To get flake8 and tox, just pip install them into your virtualenv.
+    To get flake8 and tox, just pip install them into your virtualenv.
 
 6. Commit your changes and push your branch to GitHub:
 
-   ```sh
-   git add .
-   git commit -m "Your detailed description of your changes."
-   git push origin name-of-your-bugfix-or-feature
-   ```
+    ```sh
+    git add .
+    git commit -m "Your detailed description of your changes."
+    git push origin name-of-your-bugfix-or-feature
+    ```
 
 7. Submit a pull request through the GitHub website.
 

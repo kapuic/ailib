@@ -87,7 +87,7 @@ export const temperatureTool = tool(
                 .describe("The city to get the current temperature for"),
         }),
         responseFormat: "content",
-    }
+    },
 );
 ```
 

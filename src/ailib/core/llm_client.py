@@ -4,13 +4,15 @@ This module defines the interface that all LLM clients must implement.
 """
 
 from abc import ABC, abstractmethod
+from collections.abc import AsyncIterator, Iterator
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, AsyncIterator, Dict, Iterator, List, Optional, Union
+from typing import Any
 
 
 class Role(Enum):
     """Message roles in a conversation."""
+
     SYSTEM = "system"
     USER = "user"
     ASSISTANT = "assistant"
@@ -20,13 +22,14 @@ class Role(Enum):
 @dataclass
 class Message:
     """Represents a message in a conversation."""
+
     role: Role
     content: str
-    name: Optional[str] = None
-    tool_calls: Optional[List[Dict[str, Any]]] = None
-    tool_call_id: Optional[str] = None
+    name: str | None = None
+    tool_calls: list[dict[str, Any]] | None = None
+    tool_call_id: str | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert message to dictionary format."""
         data = {"role": self.role.value, "content": self.content}
         if self.name:
@@ -41,11 +44,12 @@ class Message:
 @dataclass
 class CompletionResponse:
     """Response from LLM completion."""
+
     content: str
     model: str
-    usage: Dict[str, int]
-    finish_reason: Optional[str] = None
-    tool_calls: Optional[List[Dict[str, Any]]] = None
+    usage: dict[str, int]
+    finish_reason: str | None = None
+    tool_calls: list[dict[str, Any]] | None = None
 
 
 class LLMClient(ABC):
@@ -53,7 +57,7 @@ class LLMClient(ABC):
 
     def __init__(self, model: str, **kwargs):
         """Initialize the LLM client.
-        
+
         Args:
             model: Model name/identifier
             **kwargs: Additional client-specific parameters
@@ -64,15 +68,15 @@ class LLMClient(ABC):
     @abstractmethod
     def complete(
         self,
-        messages: List[Message],
+        messages: list[Message],
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
-        tools: Optional[List[Dict[str, Any]]] = None,
-        tool_choice: Optional[Union[str, Dict[str, Any]]] = None,
-        **kwargs
+        max_tokens: int | None = None,
+        tools: list[dict[str, Any]] | None = None,
+        tool_choice: str | dict[str, Any] | None = None,
+        **kwargs,
     ) -> CompletionResponse:
         """Generate a completion for the given messages.
-        
+
         Args:
             messages: List of messages in the conversation
             temperature: Sampling temperature (0-2)
@@ -80,7 +84,7 @@ class LLMClient(ABC):
             tools: Available tools for function calling
             tool_choice: Tool selection strategy
             **kwargs: Additional model-specific parameters
-            
+
         Returns:
             CompletionResponse with generated content
         """
@@ -89,12 +93,12 @@ class LLMClient(ABC):
     @abstractmethod
     async def acomplete(
         self,
-        messages: List[Message],
+        messages: list[Message],
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
-        tools: Optional[List[Dict[str, Any]]] = None,
-        tool_choice: Optional[Union[str, Dict[str, Any]]] = None,
-        **kwargs
+        max_tokens: int | None = None,
+        tools: list[dict[str, Any]] | None = None,
+        tool_choice: str | dict[str, Any] | None = None,
+        **kwargs,
     ) -> CompletionResponse:
         """Async version of complete."""
         pass
@@ -102,15 +106,15 @@ class LLMClient(ABC):
     @abstractmethod
     def stream(
         self,
-        messages: List[Message],
+        messages: list[Message],
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
-        tools: Optional[List[Dict[str, Any]]] = None,
-        tool_choice: Optional[Union[str, Dict[str, Any]]] = None,
-        **kwargs
+        max_tokens: int | None = None,
+        tools: list[dict[str, Any]] | None = None,
+        tool_choice: str | dict[str, Any] | None = None,
+        **kwargs,
     ) -> Iterator[str]:
         """Stream completions token by token.
-        
+
         Args:
             messages: List of messages in the conversation
             temperature: Sampling temperature (0-2)
@@ -118,7 +122,7 @@ class LLMClient(ABC):
             tools: Available tools for function calling
             tool_choice: Tool selection strategy
             **kwargs: Additional model-specific parameters
-            
+
         Yields:
             Generated tokens as they become available
         """
@@ -127,40 +131,40 @@ class LLMClient(ABC):
     @abstractmethod
     async def astream(
         self,
-        messages: List[Message],
+        messages: list[Message],
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
-        tools: Optional[List[Dict[str, Any]]] = None,
-        tool_choice: Optional[Union[str, Dict[str, Any]]] = None,
-        **kwargs
+        max_tokens: int | None = None,
+        tools: list[dict[str, Any]] | None = None,
+        tool_choice: str | dict[str, Any] | None = None,
+        **kwargs,
     ) -> AsyncIterator[str]:
         """Async version of stream."""
         pass
 
     def count_tokens(self, text: str) -> int:
         """Count tokens in text.
-        
+
         Args:
             text: Text to count tokens for
-            
+
         Returns:
             Number of tokens
         """
         # Basic estimation - subclasses should override with model-specific counting
         return len(text.split()) * 1.3  # Rough estimate
 
-    def validate_messages(self, messages: List[Message]) -> None:
+    def validate_messages(self, messages: list[Message]) -> None:
         """Validate message format.
-        
+
         Args:
             messages: Messages to validate
-            
+
         Raises:
             ValueError: If messages are invalid
         """
         if not messages:
             raise ValueError("Messages list cannot be empty")
-        
+
         # Check for proper role sequence
         for i, msg in enumerate(messages):
             if not isinstance(msg, Message):
