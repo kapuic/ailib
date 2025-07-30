@@ -70,11 +70,14 @@ Ready to contribute? Here's how to set up `ailib` for local development.
     ```sh
     make lint
     make test
+    make test-notebooks-lax  # Test Jupyter notebooks
     # Or
     make test-all
     ```
 
     To get flake8 and tox, just pip install them into your virtualenv.
+
+    For notebook testing, see [docs/notebook_testing.md](docs/notebook_testing.md) for detailed guidelines.
 
 6. Commit your changes and push your branch to GitHub:
 
@@ -100,6 +103,19 @@ To run a subset of tests:
 
 ```sh
 pytest tests.test_ailib
+```
+
+To test specific notebooks:
+
+```sh
+# Test a single notebook
+pytest --nbval-lax examples/tutorials/01_setup_and_installation.ipynb
+
+# Test with verbose output for debugging
+pytest --nbval-lax -vv examples/tutorials/01_setup_and_installation.ipynb
+
+# Use the validation script for more options
+python scripts/validate_notebooks.py --help
 ```
 
 ## Deploying
