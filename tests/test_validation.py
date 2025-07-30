@@ -1,346 +1,241 @@
-"""Tests for Pydantic validation integration."""
+"""Tests for validation through factory functions.
+
+Since validation is now internal, we test it through the public API.
+"""
+
+import os
 
 import pytest
-from ailib.validation import (
-    AgentConfig,
-    ChainConfig,
-    LLMConfig,
-    MessageConfig,
-    PromptTemplateConfig,
-    SafetyConfig,
-    SessionConfig,
-    ToolConfig,
-    ToolParameterSchema,
-    create_dynamic_model,
-)
-from pydantic import ValidationError
+from ailib import create_agent, create_chain, create_session
+from ailib.core import PromptTemplate
+
+# Set dummy API key for tests
+os.environ["OPENAI_API_KEY"] = "sk-test-key-for-validation"
 
 
-class TestPromptTemplateConfig:
-    """Test prompt template configuration validation."""
+class TestPromptTemplate:
+    """Test prompt template validation through the public API."""
 
-    def test_valid_template_config(self):
-        """Test valid template configuration."""
-        config = PromptTemplateConfig(
-            template="Hello {name}, welcome to {place}!",
-            input_variables=["name", "place"],
-        )
-        assert config.template == "Hello {name}, welcome to {place}!"
-        assert config.input_variables == ["name", "place"]
+    def test_valid_template(self):
+        """Test valid template creation."""
+        template = PromptTemplate("Hello {name}, welcome to {place}!")
+        assert template.template == "Hello {name}, welcome to {place}!"
+        assert set(template.variables) == {"name", "place"}
 
-    def test_empty_template_raises_error(self):
-        """Test that empty template raises validation error."""
-        with pytest.raises(ValidationError) as exc_info:
-            PromptTemplateConfig(template="", input_variables=[])
-        assert "Template cannot be empty" in str(exc_info.value)
+    def test_invalid_empty_template(self):
+        """Test that empty template is rejected."""
+        with pytest.raises(ValueError) as exc_info:
+            PromptTemplate("")
+        assert "empty" in str(exc_info.value).lower()
 
-    def test_missing_placeholders_raises_error(self):
-        """Test that missing placeholders raise validation error."""
-        with pytest.raises(ValidationError) as exc_info:
-            PromptTemplateConfig(
-                template="Hello {name}!",
-                input_variables=["name", "age"],  # age not in template
-            )
-        assert "not found in template placeholders" in str(exc_info.value)
+    def test_template_with_role(self):
+        """Test template with custom role."""
+        from ailib.core import Role
+
+        template = PromptTemplate("You are a {role}", Role.SYSTEM)
+        assert template.role == Role.SYSTEM
+        assert template.variables == ["role"]  # Only one variable, order doesn't matter
 
 
-class TestMessageConfig:
-    """Test message configuration validation."""
+class TestAgentFactory:
+    """Test agent validation through factory function."""
 
-    def test_valid_message_config(self):
-        """Test valid message configuration."""
-        config = MessageConfig(role="user", content="Hello, AI!")
-        assert config.role == "user"
-        assert config.content == "Hello, AI!"
-
-    def test_invalid_role_raises_error(self):
-        """Test that invalid role raises validation error."""
-        with pytest.raises(ValidationError):
-            MessageConfig(role="invalid_role", content="Hello")
-
-    def test_empty_message_raises_error(self):
-        """Test that empty message without function calls raises error."""
-        with pytest.raises(ValidationError) as exc_info:
-            MessageConfig(role="user")
-        assert "must have either content" in str(exc_info.value)
-
-    def test_message_with_function_call_valid(self):
-        """Test message with function call is valid."""
-        config = MessageConfig(
-            role="assistant",
-            function_call={"name": "get_weather", "arguments": '{"location": "NYC"}'},
-        )
-        assert config.function_call is not None
-
-
-class TestLLMConfig:
-    """Test LLM configuration validation."""
-
-    def test_valid_llm_config(self):
-        """Test valid LLM configuration."""
-        config = LLMConfig(model="gpt-4", temperature=0.8, max_tokens=1000)
-        assert config.model == "gpt-4"
-        assert config.temperature == 0.8
-        assert config.max_tokens == 1000
-
-    def test_temperature_bounds(self):
-        """Test temperature validation bounds."""
-        # Valid temperatures
-        LLMConfig(model="gpt-4", temperature=0.0)
-        LLMConfig(model="gpt-4", temperature=2.0)
-
-        # Invalid temperatures
-        with pytest.raises(ValidationError):
-            LLMConfig(model="gpt-4", temperature=-0.1)
-        with pytest.raises(ValidationError):
-            LLMConfig(model="gpt-4", temperature=2.1)
-
-    def test_empty_model_raises_error(self):
-        """Test that empty model name raises error."""
-        with pytest.raises(ValidationError) as exc_info:
-            LLMConfig(model="   ")
-        assert "Model name cannot be empty" in str(exc_info.value)
-
-
-class TestChainConfig:
-    """Test chain configuration validation."""
-
-    def test_valid_chain_config(self):
-        """Test valid chain configuration."""
-        config = ChainConfig(
-            name="my_chain",
-            description="A test chain",
-            max_iterations=5,
-            retry_attempts=2,
-        )
-        assert config.name == "my_chain"
-        assert config.max_iterations == 5
-        assert config.retry_attempts == 2
-
-    def test_empty_name_raises_error(self):
-        """Test that empty chain name raises error."""
-        with pytest.raises(ValidationError) as exc_info:
-            ChainConfig(name="")
-        assert "Chain name cannot be empty" in str(exc_info.value)
-
-    def test_negative_iterations_raises_error(self):
-        """Test that negative iterations raise error."""
-        with pytest.raises(ValidationError):
-            ChainConfig(name="test", max_iterations=0)
-
-
-class TestAgentConfig:
-    """Test agent configuration validation."""
-
-    def test_valid_agent_config(self):
-        """Test valid agent configuration."""
-        config = AgentConfig(
-            name="my_agent",
+    def test_valid_agent_creation(self):
+        """Test valid agent creation."""
+        agent = create_agent(
+            "test_agent",
             model="gpt-4",
-            tools=["calculator", "web_search"],
             temperature=0.5,
+            verbose=True,
         )
-        assert config.name == "my_agent"
-        assert config.model == "gpt-4"
-        assert config.tools == ["calculator", "web_search"]
-        assert config.temperature == 0.5
+        assert agent.name == "test_agent"
+        assert agent.model == "gpt-4"
+        assert agent.temperature == 0.5
+        assert agent.verbose is True
 
-    def test_empty_name_raises_error(self):
-        """Test that empty agent name raises error."""
-        with pytest.raises(ValidationError) as exc_info:
-            AgentConfig(name="", model="gpt-4")
-        assert "Agent name cannot be empty" in str(exc_info.value)
+    def test_invalid_empty_name(self):
+        """Test that empty name is rejected."""
+        with pytest.raises(Exception) as exc_info:
+            create_agent("", model="gpt-4")
+        assert "empty" in str(exc_info.value).lower()
 
-    def test_memory_size_validation(self):
-        """Test memory size validation."""
-        # Valid memory sizes
-        AgentConfig(name="test", model="gpt-4", memory_size=0)
-        AgentConfig(name="test", model="gpt-4", memory_size=100)
+    def test_invalid_temperature(self):
+        """Test temperature validation."""
+        with pytest.raises(Exception) as exc_info:
+            create_agent("test", temperature=3.0)
+        assert "less than or equal to 2" in str(exc_info.value).lower()
 
-        # Invalid memory size
-        with pytest.raises(ValidationError):
-            AgentConfig(name="test", model="gpt-4", memory_size=-1)
+    def test_default_values(self):
+        """Test default values are set correctly."""
+        agent = create_agent("test")
+        assert agent.temperature == 0.7
+        assert agent.max_steps == 10
+        assert agent.verbose is False
 
 
-class TestToolConfig:
-    """Test tool configuration validation."""
+class TestChainFactory:
+    """Test chain validation through factory function."""
 
-    def test_valid_tool_config(self):
-        """Test valid tool configuration."""
-        config = ToolConfig(
-            name="calculator",
-            description="Performs mathematical calculations",
-            parameters=[
-                ToolParameterSchema(
-                    name="expression",
-                    type="str",
-                    description="Math expression to evaluate",
-                    required=True,
-                )
-            ],
+    def test_valid_chain_creation(self):
+        """Test valid chain creation."""
+        chain = create_chain(
+            "Translate to Spanish: {text}",
+            "Make it more formal",
+            verbose=True,
         )
-        assert config.name == "calculator"
-        assert len(config.parameters) == 1
+        assert chain._verbose is True
+        assert len(chain) == 2  # Two prompts added
 
-    def test_invalid_tool_name_raises_error(self):
-        """Test that invalid tool name raises error."""
-        with pytest.raises(ValidationError) as exc_info:
-            ToolConfig(name="123-tool", description="Invalid name")
-        assert "must be a valid Python identifier" in str(exc_info.value)
-
-    def test_empty_description_raises_error(self):
-        """Test that empty description raises error."""
-        with pytest.raises(ValidationError) as exc_info:
-            ToolConfig(name="tool", description="   ")
-        assert "Tool description cannot be empty" in str(exc_info.value)
-
-
-class TestToolParameterSchema:
-    """Test tool parameter schema validation."""
-
-    def test_valid_parameter_schema(self):
-        """Test valid parameter schema."""
-        schema = ToolParameterSchema(
-            name="count",
-            type="int",
-            description="Number of items",
-            required=False,
-            default=10,
-            min_value=1,
-            max_value=100,
+    def test_chain_with_custom_retry(self):
+        """Test chain with custom retry configuration."""
+        chain = create_chain(
+            "Summarize: {text}",
+            retry_attempts=5,
+            retry_delay=2.0,
         )
-        assert schema.name == "count"
-        assert schema.type == "int"
-        assert schema.default == 10
+        assert chain.retry_attempts == 5
+        assert chain.retry_delay == 2.0
 
-    def test_invalid_type_raises_error(self):
-        """Test that invalid type raises error."""
-        with pytest.raises(ValidationError) as exc_info:
-            ToolParameterSchema(name="param", type="invalid_type")
-        assert "Invalid parameter type" in str(exc_info.value)
-
-    def test_numeric_constraints_on_non_numeric_raises_error(self):
-        """Test that numeric constraints on non-numeric types raise error."""
-        with pytest.raises(ValidationError) as exc_info:
-            ToolParameterSchema(name="text", type="str", min_value=0)
-        assert "min_value only applies to numeric types" in str(exc_info.value)
-
-    def test_string_constraints_on_non_string_raises_error(self):
-        """Test that string constraints on non-string types raise error."""
-        with pytest.raises(ValidationError) as exc_info:
-            ToolParameterSchema(name="num", type="int", min_length=5)
-        assert "min_length only applies to string type" in str(exc_info.value)
-
-    def test_min_max_constraint_validation(self):
-        """Test min/max constraint validation."""
-        with pytest.raises(ValidationError) as exc_info:
-            ToolParameterSchema(name="num", type="int", min_value=100, max_value=50)
-        assert "min_value cannot be greater than max_value" in str(exc_info.value)
-
-    def test_non_required_without_default_raises_error(self):
-        """Test that non-required parameters without default raise error."""
-        with pytest.raises(ValidationError) as exc_info:
-            ToolParameterSchema(name="param", type="str", required=False)
-        assert "Non-required parameters must have a default value" in str(
-            exc_info.value
-        )
+    def test_default_values(self):
+        """Test default values."""
+        chain = create_chain("Test prompt")
+        assert chain.max_iterations == 10
+        assert chain.early_stopping is True
+        assert chain.retry_attempts == 3
 
 
-class TestSessionConfig:
-    """Test session configuration validation."""
+class TestSessionFactory:
+    """Test session validation through factory function."""
 
-    def test_valid_session_config(self):
-        """Test valid session configuration."""
-        config = SessionConfig(
+    def test_valid_session_creation(self):
+        """Test valid session creation."""
+        session = create_session(
             session_id="test-123",
             max_messages=50,
             ttl=3600,
             metadata={"user": "test"},
         )
-        assert config.session_id == "test-123"
-        assert config.max_messages == 50
-        assert config.ttl == 3600
+        assert session.session_id == "test-123"
+        assert session.max_history == 50
+        assert session.ttl == 3600
+        assert session.metadata["user"] == "test"
 
-    def test_auto_save_without_path_raises_error(self):
-        """Test that auto_save without save_path raises error."""
-        with pytest.raises(ValidationError) as exc_info:
-            SessionConfig(auto_save=True)
-        assert "save_path must be provided when auto_save is True" in str(
-            exc_info.value
+    def test_auto_save_requires_path(self):
+        """Test that auto_save requires save_path."""
+        with pytest.raises(Exception) as exc_info:
+            create_session(auto_save=True)
+        assert "save_path must be provided" in str(exc_info.value).lower()
+
+    def test_default_values(self):
+        """Test default values."""
+        session = create_session()
+        assert session.max_history == 100
+        assert session.auto_save is False
+        assert session.metadata == {}
+
+
+class TestDirectInstantiation:
+    """Test that direct instantiation bypasses validation."""
+
+    def test_agent_direct_instantiation(self):
+        """Test agent can be created directly without validation."""
+        from ailib import Agent
+
+        # This should work even with invalid temperature
+        agent = Agent(name="test", temperature=5.0)
+        assert agent.temperature == 5.0  # No validation!
+
+    def test_chain_direct_instantiation(self):
+        """Test chain can be created directly without validation."""
+        from ailib import Chain
+
+        # This should work even with zero iterations
+        chain = Chain(max_iterations=0)
+        assert chain.max_iterations == 0  # No validation!
+
+    def test_session_direct_instantiation(self):
+        """Test session can be created directly without validation."""
+        from ailib import Session
+
+        # This should work even with auto_save and no path
+        session = Session(auto_save=True)  # No validation error!
+        assert session.auto_save is True
+
+
+class TestFactoryValidation:
+    """Test that factory functions properly validate inputs."""
+
+    def test_agent_factory_validates_types(self):
+        """Test agent factory validates parameter types."""
+        # String temperature should fail
+        with pytest.raises(Exception):  # noqa: B017
+            create_agent("test", temperature="high")
+
+    def test_chain_factory_validates_config(self):
+        """Test chain factory validates configuration."""
+        # Negative retry attempts should fail validation
+        with pytest.raises(Exception) as exc_info:
+            create_chain("Test", retry_attempts=-1)
+        assert "greater than or equal to 0" in str(exc_info.value).lower()
+
+    def test_session_factory_validates_consistency(self):
+        """Test session factory validates configuration consistency."""
+        # auto_save without path should fail
+        with pytest.raises(Exception) as exc_info:
+            create_session(auto_save=True)
+        assert "save_path" in str(exc_info.value).lower()
+
+
+class TestIntegration:
+    """Test integration between components."""
+
+    def test_agent_with_custom_llm(self):
+        """Test agent creation with custom LLM client."""
+        from ailib import OpenAIClient
+
+        llm = OpenAIClient(model="gpt-3.5-turbo")
+        agent = create_agent("test", llm=llm)
+        assert agent.llm == llm
+        assert agent.model == "gpt-3.5-turbo"
+
+    def test_chain_with_session(self):
+        """Test chain with custom session."""
+        session = create_session(session_id="test-session")
+        chain = create_chain("Test prompt")
+        chain.with_session(session)
+        assert chain.session == session
+
+
+class TestValidationPhilosophy:
+    """Test that our validation follows Vercel AI SDK philosophy."""
+
+    def test_progressive_disclosure(self):
+        """Test progressive disclosure - simple by default, complex when needed."""
+        # Simple case - just works
+        agent = create_agent("simple")
+        assert agent is not None
+
+        # Complex case - all options available
+        agent = create_agent(
+            "complex",
+            model="gpt-4",
+            temperature=0.2,
+            max_steps=20,
+            verbose=True,
+            memory_size=50,
+            return_intermediate_steps=True,
         )
+        assert agent.temperature == 0.2
+        assert agent.max_steps == 20
 
-    def test_auto_save_with_path_valid(self):
-        """Test that auto_save with save_path is valid."""
-        config = SessionConfig(auto_save=True, save_path="/tmp/sessions")
-        assert config.auto_save is True
-        assert config.save_path == "/tmp/sessions"
+    def test_factory_vs_direct(self):
+        """Test factory provides safety, direct provides flexibility."""
+        # Factory enforces validation
+        with pytest.raises(Exception):  # noqa: B017
+            create_agent("test", temperature=10.0)
 
+        # Direct instantiation allows anything
+        from ailib import Agent
 
-class TestSafetyConfig:
-    """Test safety configuration validation."""
-
-    def test_valid_safety_config(self):
-        """Test valid safety configuration."""
-        config = SafetyConfig(
-            enabled=True,
-            block_harmful_content=True,
-            sensitive_topics=["politics", "religion"],
-            max_output_length=2000,
-            rate_limit=60,
-        )
-        assert config.enabled is True
-        assert config.sensitive_topics == ["politics", "religion"]
-        assert config.rate_limit == 60
-
-    def test_negative_max_output_length_raises_error(self):
-        """Test that negative max output length raises error."""
-        with pytest.raises(ValidationError):
-            SafetyConfig(max_output_length=0)
-
-    def test_negative_rate_limit_raises_error(self):
-        """Test that negative rate limit raises error."""
-        with pytest.raises(ValidationError):
-            SafetyConfig(rate_limit=0)
-
-
-class TestDynamicModelCreation:
-    """Test dynamic model creation utility."""
-
-    def test_create_simple_dynamic_model(self):
-        """Test creating a simple dynamic model."""
-        UserModel = create_dynamic_model(
-            "UserModel",
-            {
-                "name": (str, ...),
-                "age": (int, 0),
-                "email": (str | None, None),
-            },
-        )
-
-        # Test valid instance
-        user = UserModel(name="John Doe", age=30)
-        assert user.name == "John Doe"
-        assert user.age == 30
-        assert user.email is None
-
-        # Test missing required field
-        with pytest.raises(ValidationError):
-            UserModel(age=25)  # Missing required 'name'
-
-    def test_dynamic_model_with_validators(self):
-        """Test dynamic model with custom validators."""
-
-        def validate_age(cls, v):
-            if v < 0 or v > 150:
-                raise ValueError("Age must be between 0 and 150")
-            return v
-
-        create_dynamic_model(
-            "PersonModel",
-            {"name": (str, ...), "age": (int, ...)},
-            validators={"validate_age": validate_age},
-        )
-
-        # Note: The validator won't be automatically applied without proper decorator
-        # This is a limitation of dynamic model creation
-        # For full validation, use regular Pydantic model definition
+        agent = Agent(temperature=10.0)  # Works!
+        assert agent.temperature == 10.0

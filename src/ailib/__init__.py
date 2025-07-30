@@ -19,6 +19,7 @@ from .core import (
     PromptTemplate,
     Role,
     Session,
+    create_session,
 )
 
 # Validation is now internal - use factory functions instead
@@ -32,6 +33,7 @@ __all__ = [
     "Prompt",
     "PromptTemplate",
     "Session",
+    "create_session",
     # Chains
     "Chain",
     "ChainStep",

@@ -5,7 +5,6 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-from .._validation import ChainConfig
 from ..core import LLMClient, Message, PromptTemplate, Role, Session
 
 
@@ -34,24 +33,21 @@ class Chain:
             session: Session for state management
             **kwargs: Additional chain configuration
         """
-        # Validate configuration
-        config = ChainConfig(
-            name=kwargs.get("name", "chain"),
-            description=kwargs.get("description", ""),
-            max_iterations=kwargs.get("max_iterations", 10),
-            early_stopping=kwargs.get("early_stopping", True),
-            retry_attempts=kwargs.get("retry_attempts", 3),
-            retry_delay=kwargs.get("retry_delay", 1.0),
-            timeout=kwargs.get("timeout"),
-            verbose=kwargs.get("verbose", False),
-        )
-
+        # Direct initialization - no validation here
         self.llm = llm
         self.session = session or Session()
         self._steps: list[ChainStep] = []
         self._context: dict[str, Any] = {}
-        self._config = config
-        self._verbose = config.verbose
+
+        # Store configuration values directly
+        self.name = kwargs.get("name", "chain")
+        self.description = kwargs.get("description", "")
+        self.max_iterations = kwargs.get("max_iterations", 10)
+        self.early_stopping = kwargs.get("early_stopping", True)
+        self.retry_attempts = kwargs.get("retry_attempts", 3)
+        self.retry_delay = kwargs.get("retry_delay", 1.0)
+        self.timeout = kwargs.get("timeout")
+        self._verbose = kwargs.get("verbose", False)
 
     def with_llm(self, llm: LLMClient) -> "Chain":
         """Set the LLM client.
@@ -220,7 +216,7 @@ class Chain:
 
         # Trace the entire chain execution
         with trace_step(
-            f"chain_{self._config.name}",
+            f"chain_{self.name}",
             step_type="chain",
             total_steps=len(self._steps),
         ):
@@ -357,7 +353,7 @@ class Chain:
 
 # Convenience function for quick chain creation
 def create_chain(
-    llm: LLMClient | None = None, *prompts: str, model: str = "gpt-4", **kwargs
+    *prompts: str, llm: LLMClient | None = None, model: str = "gpt-4", **kwargs
 ) -> Chain:
     """Create a simple chain from a sequence of prompts.
 
@@ -396,8 +392,32 @@ def create_chain(
 
         llm = OpenAIClient(model=model, **llm_kwargs)
 
-    # Create chain with remaining kwargs
-    chain = Chain(llm, **kwargs)
+    # Validate configuration before creating chain
+    from .._validation import ChainConfig
+
+    config = ChainConfig(
+        name=kwargs.get("name", "chain"),
+        description=kwargs.get("description", ""),
+        max_iterations=kwargs.get("max_iterations", 10),
+        early_stopping=kwargs.get("early_stopping", True),
+        retry_attempts=kwargs.get("retry_attempts", 3),
+        retry_delay=kwargs.get("retry_delay", 1.0),
+        timeout=kwargs.get("timeout"),
+        verbose=kwargs.get("verbose", False),
+    )
+
+    # Create chain with validated values
+    chain = Chain(
+        llm,
+        name=config.name,
+        description=config.description,
+        max_iterations=config.max_iterations,
+        early_stopping=config.early_stopping,
+        retry_attempts=config.retry_attempts,
+        retry_delay=config.retry_delay,
+        timeout=config.timeout,
+        verbose=config.verbose,
+    )
 
     # Add prompts
     for prompt in prompts:

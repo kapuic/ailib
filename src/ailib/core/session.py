@@ -1,10 +1,9 @@
 """Session management for maintaining conversation state and memory."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
-from .._validation import SessionConfig
 from .llm_client import Message, Role
 
 
@@ -21,26 +20,19 @@ class Session:
             max_history: Maximum number of messages to keep in history
             **kwargs: Additional session configuration
         """
-        # Validate configuration
-        config = SessionConfig(
-            session_id=session_id or str(uuid4()),
-            max_messages=max_history or kwargs.get("max_messages", 100),
-            ttl=kwargs.get("ttl"),
-            metadata=kwargs.get("metadata", {}),
-            auto_save=kwargs.get("auto_save", False),
-            save_path=kwargs.get("save_path"),
-        )
+        # Direct initialization - no validation here
+        self.session_id = session_id or str(uuid4())
+        self.max_history = max_history or kwargs.get("max_messages", 100)
+        self.created_at = datetime.now(timezone.utc)
 
-        self.session_id = config.session_id
-        self.max_history = config.max_messages
-        self.created_at = datetime.utcnow()
-        self._config = config
+        # Store configuration values directly
+        self.ttl = kwargs.get("ttl")
+        self.auto_save = kwargs.get("auto_save", False)
+        self.save_path = kwargs.get("save_path")
+        self.metadata: dict[str, Any] = kwargs.get("metadata", {})
 
         # Conversation history
         self._messages: list[Message] = []
-
-        # Session metadata
-        self.metadata: dict[str, Any] = config.metadata
 
         # Memory storage for key-value pairs
         self._memory: dict[str, Any] = {}
@@ -161,7 +153,7 @@ class Session:
             data: Event data
         """
         trace_entry = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "event_type": event_type,
             "data": data,
         }
@@ -233,3 +225,67 @@ class Session:
             f"messages={len(self._messages)}, "
             f"memory_keys={list(self._memory.keys())})"
         )
+
+
+# Factory function for simplified session creation
+def create_session(
+    session_id: str | None = None,
+    max_messages: int = 100,
+    ttl: int | None = None,
+    auto_save: bool = False,
+    save_path: str | None = None,
+    **kwargs,
+) -> Session:
+    """Create a session with simplified configuration.
+
+    This is the recommended way to create sessions - simple and functional.
+
+    Args:
+        session_id: Unique session ID (auto-generated if not provided)
+        max_messages: Maximum messages to keep in history (default: 100)
+        ttl: Time-to-live in seconds
+        auto_save: Enable automatic session saving
+        save_path: Path for session persistence (required if auto_save=True)
+        **kwargs: Additional options (metadata, etc.)
+
+    Returns:
+        Configured Session instance ready to use
+
+    Example:
+        # Simple session
+        session = create_session()
+
+        # Session with auto-save
+        session = create_session(
+            auto_save=True,
+            save_path="/tmp/sessions",
+            ttl=3600
+        )
+
+        # Named session with metadata
+        session = create_session(
+            session_id="user-123",
+            metadata={"user_id": "123", "context": "support"}
+        )
+    """
+    from .._validation import SessionConfig
+
+    # Validate using internal config
+    config = SessionConfig(
+        session_id=session_id or str(uuid4()),
+        max_messages=max_messages,
+        ttl=ttl,
+        metadata=kwargs.get("metadata", {}),
+        auto_save=auto_save,
+        save_path=save_path,
+    )
+
+    # Create session with validated values
+    return Session(
+        session_id=config.session_id,
+        max_history=config.max_messages,
+        ttl=config.ttl,
+        auto_save=config.auto_save,
+        save_path=config.save_path,
+        metadata=config.metadata,
+    )

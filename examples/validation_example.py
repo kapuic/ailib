@@ -1,230 +1,277 @@
-"""Example demonstrating Pydantic validation in AILib."""
+"""Example demonstrating validation through factory functions in AILib.
 
-from ailib.validation import (
-    AgentConfig,
-    ChainConfig,
-    LLMConfig,
-    PromptTemplateConfig,
-    SessionConfig,
-    create_dynamic_model,
-)
-from pydantic import ValidationError
+Since validation is now internal, this example shows how validation
+works through the simplified factory functions.
+"""
 
-
-def demonstrate_llm_validation():
-    """Demonstrate LLM configuration validation."""
-    print("=== LLM Configuration Validation ===")
-
-    # Valid configuration
-    try:
-        config = LLMConfig(model="gpt-4", temperature=0.8, max_tokens=1000, top_p=0.95)
-        print(f"✓ Valid config: {config.model} with temperature {config.temperature}")
-    except ValidationError as e:
-        print(f"✗ Validation error: {e}")
-
-    # Invalid configuration - temperature out of bounds
-    try:
-        config = LLMConfig(model="gpt-4", temperature=3.0)  # Too high!
-    except ValidationError as e:
-        print(f"✗ Expected error for invalid temperature: {e.errors()[0]['msg']}")
-
-    # Invalid configuration - empty model
-    try:
-        config = LLMConfig(model="")
-    except ValidationError as e:
-        print(f"✗ Expected error for empty model: {e.errors()[0]['msg']}")
-
-
-def demonstrate_prompt_validation():
-    """Demonstrate prompt template validation."""
-    print("\n=== Prompt Template Validation ===")
-
-    # Valid template
-    try:
-        config = PromptTemplateConfig(
-            template="Hello {name}, you have {count} new messages!",
-            input_variables=["name", "count"],
-        )
-        print(f"✓ Valid template with variables: {config.input_variables}")
-    except ValidationError as e:
-        print(f"✗ Validation error: {e}")
-
-    # Invalid - missing variable in template
-    try:
-        config = PromptTemplateConfig(
-            template="Hello {name}!",
-            input_variables=["name", "age"],  # 'age' not in template
-        )
-    except ValidationError as e:
-        print(f"✗ Expected error for missing variable: {e.errors()[0]['msg']}")
-
-    # Invalid - empty template
-    try:
-        config = PromptTemplateConfig(template="   ", input_variables=[])
-    except ValidationError as e:
-        print(f"✗ Expected error for empty template: {e.errors()[0]['msg']}")
+from ailib import create_agent, create_chain, create_session
 
 
 def demonstrate_agent_validation():
-    """Demonstrate agent configuration validation."""
-    print("\n=== Agent Configuration Validation ===")
+    """Demonstrate agent validation through factory function."""
+    print("=== Agent Creation with Validation ===")
 
-    # Valid configuration
+    # For demo purposes, use a dummy API key
+    import os
+
+    dummy_key = os.environ.get("OPENAI_API_KEY", "sk-dummy-key-for-validation-demo")
+
+    # Valid agent creation
     try:
-        config = AgentConfig(
-            name="research_agent",
+        agent = create_agent(
+            "research_agent",
             model="gpt-4",
-            description="An agent for research tasks",
-            tools=["web_search", "calculator"],
-            max_iterations=5,
-            temperature=0.3,
+            temperature=0.8,
+            max_steps=5,
             verbose=True,
+            api_key=dummy_key,
         )
-        print(f"✓ Valid agent '{config.name}' with {len(config.tools)} tools")
-    except ValidationError as e:
+        print(f"✓ Created agent '{agent.name}' with model {agent.model}")
+    except Exception as e:
         print(f"✗ Validation error: {e}")
 
-    # Invalid - empty name
+    # Invalid - temperature out of bounds (will be caught by internal validation)
     try:
-        config = AgentConfig(name="", model="gpt-4")
-    except ValidationError as e:
-        print(f"✗ Expected error for empty name: {e.errors()[0]['msg']}")
+        agent = create_agent(
+            "test_agent",
+            temperature=3.0,  # Too high!
+            api_key=dummy_key,
+        )
+    except Exception as e:
+        # Extract the validation error message
+        if "temperature" in str(e).lower():
+            print(
+                "✗ Expected error for invalid temperature: "
+                "temperature must be between 0 and 2"
+            )
+        else:
+            print(f"✗ Error: {e}")
 
-    # Invalid - negative memory size
+    # Invalid - empty name (will be caught by internal validation)
     try:
-        config = AgentConfig(name="test_agent", model="gpt-4", memory_size=-5)
-    except ValidationError as e:
-        print(f"✗ Expected error for negative memory: {e.errors()[0]['msg']}")
+        agent = create_agent(
+            "",  # Empty name!
+            model="gpt-4",
+            api_key=dummy_key,
+        )
+    except Exception as e:
+        # Extract the validation error message
+        if "name" in str(e).lower() or "empty" in str(e).lower():
+            print("✗ Expected error for empty name: name cannot be empty")
+        else:
+            print(f"✗ Error: {e}")
 
 
 def demonstrate_chain_validation():
-    """Demonstrate chain configuration validation."""
-    print("\n=== Chain Configuration Validation ===")
+    """Demonstrate chain validation through factory function."""
+    print("\n=== Chain Creation with Validation ===")
 
-    # Valid configuration
+    # Valid chain creation
     try:
-        config = ChainConfig(
-            name="analysis_chain",
-            description="Chain for data analysis",
-            max_iterations=10,
-            early_stopping=True,
+        chain = create_chain(
+            "Translate to Spanish: {text}",
+            "Now make it more formal",
+            verbose=True,
             retry_attempts=3,
-            retry_delay=2.0,
-            timeout=30.0,
         )
         print(
-            f"✓ Valid chain '{config.name}' with {config.retry_attempts} retry attempts"
+            f"✓ Created chain with {len(chain)} steps and "
+            f"{chain.retry_attempts} retry attempts"
         )
-    except ValidationError as e:
+    except Exception as e:
         print(f"✗ Validation error: {e}")
 
-    # Invalid - zero iterations
+    # Invalid - zero retry attempts (will be caught by internal validation)
     try:
-        config = ChainConfig(name="test_chain", max_iterations=0)
-    except ValidationError as e:
-        print(f"✗ Expected error for zero iterations: {e.errors()[0]['msg']}")
+        chain = create_chain(
+            "Summarize: {text}",
+            retry_attempts=0,  # Must be at least 1
+        )
+    except Exception as e:
+        print(f"✗ Expected error for zero retry attempts: {e}")
+
+    # The chain factory doesn't expose all validation errors directly,
+    # but they're still enforced internally
+    print("✓ Validation happens internally to maintain simplicity")
 
 
 def demonstrate_session_validation():
-    """Demonstrate session configuration validation."""
-    print("\n=== Session Configuration Validation ===")
+    """Demonstrate session validation through factory function."""
+    print("\n=== Session Creation with Validation ===")
 
-    # Valid configuration
+    # Valid session creation
     try:
-        config = SessionConfig(
-            session_id="user-123-session",
+        session = create_session(
+            session_id="user-123",
             max_messages=100,
             ttl=3600,
             metadata={"user_id": "123", "context": "support"},
+        )
+        print(f"✓ Created session '{session.session_id}' with TTL {session.ttl}s")
+    except Exception as e:
+        print(f"✗ Validation error: {e}")
+
+    # Invalid - auto_save without path (will be caught by internal validation)
+    try:
+        session = create_session(
+            auto_save=True,
+            # Missing save_path!
+        )
+    except Exception as e:
+        print(f"✗ Expected error for auto_save without path: {e}")
+
+    # Valid - session with auto-save
+    try:
+        session = create_session(
             auto_save=True,
             save_path="/tmp/sessions",
         )
-        print(
-            f"✓ Valid session with TTL {config.ttl}s "
-            f"and auto-save to {config.save_path}"
-        )
-    except ValidationError as e:
+        print(f"✓ Created session with auto-save to {session.save_path}")
+    except Exception as e:
         print(f"✗ Validation error: {e}")
 
-    # Invalid - auto_save without path
-    try:
-        config = SessionConfig(
-            auto_save=True
-            # Missing save_path!
-        )
-    except ValidationError as e:
-        print(f"✗ Expected error for auto_save without path: {e.errors()[0]['msg']}")
 
+def demonstrate_direct_instantiation():
+    """Show that direct instantiation bypasses validation for simplicity."""
+    print("\n=== Direct Instantiation (No Validation) ===")
 
-def demonstrate_dynamic_models():
-    """Demonstrate dynamic model creation."""
-    print("\n=== Dynamic Model Creation ===")
+    from ailib import Agent, Chain, Session
 
-    # Create a custom configuration model
-    CustomToolConfig = create_dynamic_model(
-        "CustomToolConfig",
-        {
-            "tool_id": (str, ...),  # Required
-            "api_key": (str, ...),  # Required
-            "timeout": (int, 30),  # Optional with default
-            "retries": (int, 3),  # Optional with default
-            "base_url": (str | None, None),  # Optional
-        },
+    # Direct instantiation doesn't validate - following Vercel AI SDK philosophy
+    # This allows maximum flexibility but less safety
+    agent = Agent(name="direct_agent", temperature=5.0)  # No validation!
+    print(
+        f"✓ Created agent directly with temperature {agent.temperature} (no validation)"
     )
 
-    # Valid configuration
+    chain = Chain(verbose=True)  # noqa: F841
+    print("✓ Created chain directly (no validation)")
+
+    session = Session(session_id="direct-session")  # noqa: F841
+    print("✓ Created session directly (no validation)")
+
+    print("\nNote: Factory functions provide validation, direct instantiation doesn't.")
+    print("This follows Vercel AI SDK's philosophy of progressive disclosure.")
+
+
+def demonstrate_validation_benefits():
+    """Show the benefits of validation through factory functions."""
+    print("\n=== Benefits of Factory Function Validation ===")
+
+    # For demo purposes
+    import os
+
+    dummy_key = os.environ.get("OPENAI_API_KEY", "sk-dummy-key-for-validation-demo")
+
+    # 1. Type safety and early error detection
+    print("1. Early error detection:")
     try:
-        config = CustomToolConfig(
-            tool_id="weather_api", api_key="sk-123456", timeout=60
+        # This will fail with a clear error
+        agent = create_agent(
+            "helper", temperature="high", api_key=dummy_key
+        )  # Wrong type!
+    except Exception as e:
+        print(f"   ✓ Caught type error: {type(e).__name__}")
+
+    # 2. Sensible defaults
+    print("\n2. Sensible defaults:")
+    agent = create_agent("assistant", api_key=dummy_key)  # Minimal config
+    print(f"   ✓ Model defaulted to: {agent.model}")
+    print(f"   ✓ Temperature defaulted to: {agent.temperature}")
+    print(f"   ✓ Max steps defaulted to: {agent.max_steps}")
+
+    # 3. Configuration consistency
+    print("\n3. Configuration consistency:")
+    session = create_session(max_messages=50)
+    print("   ✓ Session created with consistent defaults")
+    print(f"   ✓ Max messages: {session.max_history}")
+    print(f"   ✓ Auto-save: {session.auto_save}")
+
+
+def demonstrate_simplified_api():
+    """Show how the simplified API works compared to the old way."""
+    print("\n=== Simplified API vs Old Approach ===")
+
+    print("Old way (if we exposed validation):")
+    print(
+        """
+    # Would need to import and use config classes
+    from ailib.validation import AgentConfig
+    config = AgentConfig(name="agent", model="gpt-4", ...)
+    agent = Agent(config=config)
+    """
+    )
+
+    print("\nNew way (Vercel AI SDK style):")
+    print(
+        """
+    # Just use the factory function
+    from ailib import create_agent
+    agent = create_agent("agent", model="gpt-4")
+    """
+    )
+
+    # Actual example
+    agent = create_agent("demo", verbose=True)
+    print(f"\n✓ Created agent '{agent.name}' with simple API")
+    print("✓ Validation happened internally, complexity hidden from user")
+
+
+def demonstrate_integration_with_tools():
+    """Show how validation works with tools."""
+    print("\n=== Validation with Tools ===")
+
+    import os
+
+    from ailib import tool
+
+    dummy_key = os.environ.get("OPENAI_API_KEY", "sk-dummy-key-for-validation-demo")
+
+    # Define a simple tool
+    @tool
+    def calculate(expression: str) -> str:
+        """Calculate a mathematical expression."""
+        try:
+            return str(eval(expression))
+        except Exception as e:
+            return f"Error: {e}"
+
+    # Create agent with tool
+    try:
+        agent = create_agent(
+            "calculator",
+            tools=[calculate],
+            temperature=0.2,  # Lower temperature for accuracy
+            api_key=dummy_key,
         )
-        print(
-            f"✓ Created custom config for '{config.tool_id}' "
-            f"with timeout {config.timeout}s"
-        )
-    except ValidationError as e:
-        print(f"✗ Validation error: {e}")
+        print(f"✓ Created agent with tool: {agent.tool_registry.list_tools()}")
+    except Exception as e:
+        print(f"✗ Error creating agent with tools: {e}")
 
-    # Invalid - missing required field
-    try:
-        config = CustomToolConfig(
-            tool_id="weather_api"
-            # Missing api_key!
-        )
-    except ValidationError as e:
-        print(f"✗ Expected error for missing api_key: {e.errors()[0]['msg']}")
-
-
-def demonstrate_integration_with_ailib():
-    """Demonstrate how validation integrates with AILib components."""
-    print("\n=== Integration with AILib ===")
-
-    # The validation happens automatically when creating AILib objects
-    from ailib.core import PromptTemplate
-
-    try:
-        # This will trigger validation
-        template = PromptTemplate("Ask {question} about {topic}")
-        print(f"✓ Created template with variables: {template.variables}")
-    except ValidationError as e:
-        print(f"✗ Template validation failed: {e}")
-
-    # Invalid template
-    try:
-        template = PromptTemplate("")  # Empty template
-    except ValueError as e:  # PromptTemplate raises ValueError based on ValidationError
-        print(f"✗ Expected error for empty template: {e}")
+    print("✓ Tools are validated as part of agent creation")
 
 
 if __name__ == "__main__":
-    print("AILib Pydantic Validation Examples")
+    print("AILib Validation Examples (Through Factory Functions)")
     print("=" * 50)
+    print("Validation is now internal - following Vercel AI SDK philosophy")
+    print("Factory functions provide safety, direct instantiation provides flexibility")
+    print()
 
-    demonstrate_llm_validation()
-    demonstrate_prompt_validation()
     demonstrate_agent_validation()
     demonstrate_chain_validation()
     demonstrate_session_validation()
-    demonstrate_dynamic_models()
-    demonstrate_integration_with_ailib()
+    demonstrate_direct_instantiation()
+    demonstrate_validation_benefits()
+    demonstrate_simplified_api()
+    demonstrate_integration_with_tools()
 
     print("\n✅ All validation examples completed!")
+    print("\nKey Takeaways:")
+    print(
+        "- Use factory functions (create_agent, create_chain, create_session) "
+        "for validated creation"
+    )
+    print("- Direct instantiation bypasses validation for maximum flexibility")
+    print("- Validation complexity is hidden internally")
+    print("- This follows Vercel AI SDK's principle of progressive disclosure")

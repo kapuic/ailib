@@ -5,7 +5,6 @@ import re
 from collections.abc import Callable
 from typing import Any
 
-from .._validation import AgentConfig
 from ..core import LLMClient, Message, Role, Session
 from .tools import Tool, ToolRegistry, get_global_registry
 
@@ -30,24 +29,19 @@ class Agent:
             verbose: Enable verbose output
             **kwargs: Additional agent configuration
         """
-        # Validate configuration
-        config = AgentConfig(
-            name=kwargs.get("name", "agent"),
-            description=kwargs.get("description", ""),
-            model=llm.model if llm else kwargs.get("model", "gpt-4"),
-            system_prompt=kwargs.get("system_prompt"),
-            tools=[],  # Will be filled based on actual tools
-            max_iterations=max_steps,
-            temperature=kwargs.get("temperature", 0.7),
-            verbose=verbose,
-            memory_size=kwargs.get("memory_size", 10),
-            return_intermediate_steps=kwargs.get("return_intermediate_steps", False),
-        )
-
+        # Direct initialization - no validation here
         self.llm = llm
-        self.max_steps = config.max_iterations
-        self.verbose = config.verbose
-        self._config = config
+        self.max_steps = max_steps
+        self.verbose = verbose
+
+        # Store configuration values directly
+        self.name = kwargs.get("name", "agent")
+        self.description = kwargs.get("description", "")
+        self.model = llm.model if llm else kwargs.get("model", "gpt-4")
+        self.system_prompt = kwargs.get("system_prompt")
+        self.temperature = kwargs.get("temperature", 0.7)
+        self.memory_size = kwargs.get("memory_size", 10)
+        self.return_intermediate_steps = kwargs.get("return_intermediate_steps", False)
 
         # Set up tool registry
         if tools is None:
@@ -190,7 +184,7 @@ class Agent:
 
         # Start trace for agent execution
         start_trace(
-            f"agent_{self._config.name}",
+            f"agent_{self.name}",
             task=task,
             tools=self.tool_registry.list_tools(),
         )
@@ -342,7 +336,34 @@ def create_agent(
     # Any remaining kwargs go to agent
     agent_kwargs.update(kwargs)
 
-    # Create agent with tools
-    agent = Agent(llm=llm, tools=tools, verbose=verbose, **agent_kwargs)
+    # Validate configuration before creating agent
+    from .._validation import AgentConfig
+
+    config = AgentConfig(
+        name=agent_kwargs.get("name", "assistant"),
+        description=agent_kwargs.get("description", ""),
+        model=model,
+        system_prompt=agent_kwargs.get("system_prompt"),
+        tools=[],  # Validated separately
+        max_iterations=agent_kwargs.get("max_steps", 10),
+        temperature=agent_kwargs.get("temperature", 0.7),
+        verbose=verbose,
+        memory_size=agent_kwargs.get("memory_size", 10),
+        return_intermediate_steps=agent_kwargs.get("return_intermediate_steps", False),
+    )
+
+    # Create agent with validated values
+    agent = Agent(
+        llm=llm,
+        tools=tools,
+        max_steps=config.max_iterations,
+        verbose=config.verbose,
+        name=config.name,
+        description=config.description,
+        temperature=config.temperature,
+        memory_size=config.memory_size,
+        return_intermediate_steps=config.return_intermediate_steps,
+        system_prompt=config.system_prompt,
+    )
 
     return agent
