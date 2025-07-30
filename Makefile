@@ -63,6 +63,12 @@ ruff: ## check style with ruff only
 test: ## run tests quickly with the default Python
 	pytest
 
+test-notebooks: ## validate jupyter notebooks
+	pytest --nbval examples/tutorials/
+
+test-notebooks-lax: ## validate notebooks (ignore output differences)
+	pytest --nbval-lax examples/tutorials/
+
 test-all: ## run tests on every Python version with uv
 	uv run --python=3.10 --extra test pytest
 	uv run --python=3.11 --extra test pytest

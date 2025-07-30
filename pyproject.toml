@@ -37,6 +37,7 @@ test = [
     "ruff",  # linting
     "mypy",  # type checking
     "types-python-dateutil",  # type stubs
+    "nbval",  # notebook validation
 ]
 
 dev = [
@@ -101,3 +102,13 @@ select = [
     "B",   # flake8-bugbear
     "UP",  # pyupgrade
 ]
+
+[tool.pytest.ini_options]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--verbose",
+]
+testpaths = ["tests"]
+# Separate notebook validation to avoid running by default
+# Run with: pytest --nbval examples/tutorials/
