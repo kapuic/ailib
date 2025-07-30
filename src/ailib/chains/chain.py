@@ -5,8 +5,8 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
+from .._validation import ChainConfig
 from ..core import LLMClient, Message, PromptTemplate, Role, Session
-from ..validation import ChainConfig
 
 
 @dataclass
@@ -356,17 +356,51 @@ class Chain:
 
 
 # Convenience function for quick chain creation
-def create_chain(llm: LLMClient, *prompts: str) -> Chain:
+def create_chain(
+    llm: LLMClient | None = None, *prompts: str, model: str = "gpt-4", **kwargs
+) -> Chain:
     """Create a simple chain from a sequence of prompts.
 
+    This is the recommended way to create chains - simple and functional.
+
     Args:
-        llm: LLM client to use
+        llm: LLM client to use (optional - will create one if not provided)
         *prompts: Sequence of prompts
+        model: Model to use if creating LLM client (default: gpt-4)
+        **kwargs: Additional options for chain or LLM client
 
     Returns:
         Configured Chain instance
+
+    Example:
+        # Simple chain with auto-created client
+        chain = create_chain(
+            "Translate to Spanish: {text}",
+            "Now make it more formal"
+        )
+        result = chain.run(text="Hello friend")
+
+        # With custom client
+        client = OpenAIClient(model="gpt-3.5-turbo")
+        chain = create_chain(client, "Summarize: {text}")
     """
-    chain = Chain(llm)
+    # Create LLM client if not provided
+    if llm is None:
+        from ..core import OpenAIClient
+
+        # Extract LLM-specific kwargs
+        llm_kwargs = {}
+        for key in ["api_key", "base_url", "timeout", "max_retries"]:
+            if key in kwargs:
+                llm_kwargs[key] = kwargs.pop(key)
+
+        llm = OpenAIClient(model=model, **llm_kwargs)
+
+    # Create chain with remaining kwargs
+    chain = Chain(llm, **kwargs)
+
+    # Add prompts
     for prompt in prompts:
         chain.add_user(prompt)
+
     return chain

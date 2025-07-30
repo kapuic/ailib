@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Any
 from uuid import uuid4
 
-from ..validation import SessionConfig
+from .._validation import SessionConfig
 from .llm_client import Message, Role
 
 

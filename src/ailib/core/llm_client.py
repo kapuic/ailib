@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
-from ..validation import LLMConfig
+from .._validation import LLMConfig
 
 
 class Role(Enum):

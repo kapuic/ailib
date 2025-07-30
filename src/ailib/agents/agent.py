@@ -5,8 +5,8 @@ import re
 from collections.abc import Callable
 from typing import Any
 
+from .._validation import AgentConfig
 from ..core import LLMClient, Message, Role, Session
-from ..validation import AgentConfig
 from .tools import Tool, ToolRegistry, get_global_registry
 
 
@@ -273,87 +273,76 @@ class Agent:
             "Please try breaking it down into smaller tasks."
         )
 
-    async def arun(self, task: str, session: Session | None = None) -> str:
-        """Async version of run.
 
-        Args:
-            task: Task or question to complete
-            session: Optional session for conversation history
+# Factory function for simplified agent creation
+def create_agent(
+    name: str = "assistant",
+    model: str = "gpt-4",
+    instructions: str | None = None,
+    tools: list[Tool | Callable] | None = None,
+    verbose: bool = False,
+    **kwargs,
+) -> Agent:
+    """Create an agent with simplified configuration.
 
-        Returns:
-            Final answer from the agent
-        """
-        if not self.llm:
-            raise ValueError("No LLM client set. Initialize with llm parameter.")
+    This is the recommended way to create agents - simple and functional.
 
-        # Create session if not provided
-        if session is None:
-            session = Session()
+    Args:
+        name: Agent name/identifier
+        model: LLM model to use (default: gpt-4)
+        instructions: Custom system instructions
+        tools: List of tools (Tool instances or @tool decorated functions)
+        verbose: Enable verbose output
+        **kwargs: Additional options (temperature, max_steps, etc.)
 
-        # Add system prompt
-        messages = [Message(role=Role.SYSTEM, content=self._create_system_prompt())]
+    Returns:
+        Configured Agent instance ready to use
 
-        # Add task
-        messages.append(Message(role=Role.USER, content=task))
+    Example:
+        # Simple agent
+        agent = create_agent("assistant")
+        result = agent.run("What's the weather?")
 
-        # Track steps
-        steps = 0
+        # With tools
+        @tool
+        def search(query: str) -> str:
+            return f"Results for: {query}"
 
-        while steps < self.max_steps:
-            steps += 1
-
-            if self.verbose:
-                print(f"\n--- Step {steps} ---")
-
-            # Get LLM response
-            response = await self.llm.acomplete(messages=messages)
-            content = response.content
-
-            if self.verbose:
-                print(f"Assistant: {content}")
-
-            # Add assistant response to messages
-            messages.append(Message(role=Role.ASSISTANT, content=content))
-
-            # Parse response
-            parsed = self._parse_response(content)
-
-            # Check if agent wants to give final answer
-            if parsed["action"].lower() == "final answer":
-                return parsed["action_input"]
-
-            # Execute tool if action is specified
-            if parsed["action"]:
-                tool_name = parsed["action"]
-                tool_input = parsed["action_input"]
-
-                if self.verbose:
-                    print(f"\nExecuting tool: {tool_name}")
-                    print(f"Input: {tool_input}")
-
-                # Execute tool (sync for now - could be made async)
-                observation = self._execute_tool(tool_name, tool_input)
-
-                if self.verbose:
-                    print(f"Observation: {observation}")
-
-                # Add observation to messages
-                observation_msg = f"Observation: {observation}"
-                messages.append(Message(role=Role.USER, content=observation_msg))
-            else:
-                # No action specified, prompt for action
-                messages.append(
-                    Message(
-                        role=Role.USER,
-                        content=(
-                            "Please specify an Action (tool name or "
-                            "'Final Answer') and Action Input."
-                        ),
-                    )
-                )
-
-        # Max steps reached
-        return (
-            "I couldn't complete the task within the maximum number of steps. "
-            "Please try breaking it down into smaller tasks."
+        agent = create_agent(
+            "researcher",
+            tools=[search],
+            instructions="You are a helpful research assistant."
         )
+    """
+    from ..core import OpenAIClient
+
+    # Extract LLM-specific kwargs
+    llm_kwargs = {}
+    agent_kwargs = {"name": name}
+
+    # Common LLM parameters
+    for key in ["api_key", "base_url", "timeout", "max_retries"]:
+        if key in kwargs:
+            llm_kwargs[key] = kwargs.pop(key)
+
+    # Agent-specific parameters
+    for key in ["max_steps", "temperature", "memory_size", "return_intermediate_steps"]:
+        if key in kwargs:
+            agent_kwargs[key] = kwargs.pop(key)
+
+    # Create LLM client if not provided
+    llm = kwargs.pop("llm", None)
+    if llm is None:
+        llm = OpenAIClient(model=model, **llm_kwargs)
+
+    # Set custom instructions if provided
+    if instructions:
+        agent_kwargs["system_prompt"] = instructions
+
+    # Any remaining kwargs go to agent
+    agent_kwargs.update(kwargs)
+
+    # Create agent with tools
+    agent = Agent(llm=llm, tools=tools, verbose=verbose, **agent_kwargs)
+
+    return agent

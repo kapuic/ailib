@@ -5,10 +5,10 @@ __email__ = "dev@kapui.net"
 __version__ = "0.1.0"
 
 # Agents imports
-from .agents import Agent, Tool, ToolRegistry, tool
+from .agents import Agent, Tool, ToolRegistry, create_agent, tool
 
 # Chains imports
-from .chains import Chain, ChainStep
+from .chains import Chain, ChainStep, create_chain
 
 # Core imports
 from .core import (
@@ -21,19 +21,7 @@ from .core import (
     Session,
 )
 
-# Validation imports
-from .validation import (
-    AgentConfig,
-    ChainConfig,
-    LLMConfig,
-    MessageConfig,
-    PromptTemplateConfig,
-    SafetyConfig,
-    SessionConfig,
-    ToolConfig,
-    ToolParameterSchema,
-    create_dynamic_model,
-)
+# Validation is now internal - use factory functions instead
 
 __all__ = [
     # Core
@@ -47,20 +35,11 @@ __all__ = [
     # Chains
     "Chain",
     "ChainStep",
+    "create_chain",
     # Agents
     "Agent",
+    "create_agent",
     "Tool",
     "ToolRegistry",
     "tool",
-    # Validation
-    "AgentConfig",
-    "ChainConfig",
-    "LLMConfig",
-    "MessageConfig",
-    "PromptTemplateConfig",
-    "SafetyConfig",
-    "SessionConfig",
-    "ToolConfig",
-    "ToolParameterSchema",
-    "create_dynamic_model",
 ]

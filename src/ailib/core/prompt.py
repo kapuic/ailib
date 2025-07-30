@@ -2,7 +2,7 @@
 
 import re
 
-from ..validation import MessageConfig, PromptTemplateConfig
+from .._validation import MessageConfig, PromptTemplateConfig
 from .llm_client import Message, Role
 
 
