@@ -94,6 +94,9 @@ class LLMClient(ABC):
         # Apply safety hooks if available
         from ..safety.hooks import _internal_post_hook, _internal_pre_hook
 
+        # Import tracing
+        from ..tracing._core import trace_step
+
         # Pre-process the prompt
         if messages:
             last_message = messages[-1]
@@ -120,13 +123,37 @@ class LLMClient(ABC):
                         finish_reason="safety",
                     )
 
-        # Call the actual implementation
-        response = self._complete_impl(
-            messages, temperature, max_tokens, tools, tool_choice, **kwargs
-        )
+        # Trace the LLM call
+        with trace_step(
+            f"llm_{self.model}",
+            step_type="llm_call",
+            model=self.model,
+            message_count=len(messages),
+            temperature=temperature,
+            max_tokens=max_tokens,
+            has_tools=bool(tools),
+        ) as step:
+            try:
+                # Call the actual implementation
+                response = self._complete_impl(
+                    messages, temperature, max_tokens, tools, tool_choice, **kwargs
+                )
 
-        # Post-process the response
-        return _internal_post_hook(response, **kwargs)
+                # Add response metadata to trace
+                step.metadata.update(
+                    {
+                        "response_tokens": response.usage.get("completion_tokens"),
+                        "prompt_tokens": response.usage.get("prompt_tokens"),
+                        "total_tokens": response.usage.get("total_tokens"),
+                        "finish_reason": response.finish_reason,
+                    }
+                )
+
+                # Post-process the response
+                return _internal_post_hook(response, **kwargs)
+            except Exception:
+                # Trace will capture the error
+                raise
 
     @abstractmethod
     def _complete_impl(

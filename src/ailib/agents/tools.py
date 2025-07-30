@@ -56,13 +56,31 @@ class Tool:
         Returns:
             Tool execution result
         """
-        if self.parameters:
-            # Validate parameters using Pydantic
-            params = self.parameters(**kwargs)
-            # Convert to dict and call function
-            return self.func(**params.model_dump())
-        else:
-            return self.func(**kwargs)
+        # Import tracing
+        from ..tracing._core import trace_step
+
+        # Trace tool execution
+        with trace_step(
+            f"tool_{self.name}",
+            step_type="tool_use",
+            tool_name=self.name,
+            args=kwargs,
+        ) as step:
+            try:
+                if self.parameters:
+                    # Validate parameters using Pydantic
+                    params = self.parameters(**kwargs)
+                    # Convert to dict and call function
+                    result = self.func(**params.model_dump())
+                else:
+                    result = self.func(**kwargs)
+
+                # Add result type to trace
+                step.metadata["result_type"] = type(result).__name__
+                return result
+            except Exception:
+                # Trace will capture the error
+                raise
 
     def __call__(self, **kwargs) -> Any:
         """Make tool callable."""

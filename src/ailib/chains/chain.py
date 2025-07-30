@@ -210,45 +210,65 @@ class Chain:
         if not self.llm:
             raise ValueError("No LLM client set. Use with_llm() to set one.")
 
+        # Import tracing
+        from ..tracing._core import trace_step
+
         # Update context with runtime variables
         self._context.update(kwargs)
 
         last_result = None
 
-        for step in self._steps:
-            # Prepare messages
-            messages = self._prepare_messages(step)
+        # Trace the entire chain execution
+        with trace_step(
+            f"chain_{self._config.name}",
+            step_type="chain",
+            total_steps=len(self._steps),
+        ):
+            for step in self._steps:
+                # Trace individual chain step
+                with trace_step(
+                    f"chain_step_{step.name}",
+                    step_type="chain_step",
+                    step_name=step.name,
+                    temperature=step.temperature,
+                ):
+                    # Prepare messages
+                    messages = self._prepare_messages(step)
 
-            if self._verbose:
-                print(f"\n[{step.name}] Sending {len(messages)} messages...")
-                if messages:
-                    print(f"Last message: {messages[-1].content[:100]}...")
+                    if self._verbose:
+                        print(f"\n[{step.name}] Sending {len(messages)} messages...")
+                        if messages:
+                            print(f"Last message: {messages[-1].content[:100]}...")
 
-            # Call LLM
-            response = self.llm.complete(
-                messages=messages,
-                temperature=step.temperature,
-                max_tokens=step.max_tokens,
-            )
+                    # Call LLM
+                    response = self.llm.complete(
+                        messages=messages,
+                        temperature=step.temperature,
+                        max_tokens=step.max_tokens,
+                    )
 
-            # Extract content
-            result = response.content
+                    # Extract content
+                    result = response.content
 
-            if self._verbose:
-                print(f"[{step.name}] Response: {result[:200]}...")
+                    if self._verbose:
+                        print(f"[{step.name}] Response: {result[:200]}...")
 
-            # Add to session history
-            if messages and messages[-1] not in self.session.get_messages():
-                self.session.add_message(messages[-1])
-            self.session.add_assistant_message(result)
+                    # Add to session history
+                    if messages and messages[-1] not in self.session.get_messages():
+                        self.session.add_message(messages[-1])
+                    self.session.add_assistant_message(result)
 
-            # Process result if processor provided
-            if step.processor:
-                result = step.processor(result)
+                    # Process result if processor provided
+                    if step.processor:
+                        with trace_step(
+                            f"processor_{step.name}",
+                            step_type="processor",
+                        ):
+                            result = step.processor(result)
 
-            # Store result in context for next steps
-            self._context[step.name] = result
-            last_result = result
+                    # Store result in context for next steps
+                    self._context[step.name] = result
+                    last_result = result
 
         return last_result
 

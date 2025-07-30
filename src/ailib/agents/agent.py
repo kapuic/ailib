@@ -181,9 +181,19 @@ class Agent:
         if not self.llm:
             raise ValueError("No LLM client set. Initialize with llm parameter.")
 
+        # Import tracing
+        from ..tracing._core import start_trace, trace_step
+
         # Create session if not provided
         if session is None:
             session = Session()
+
+        # Start trace for agent execution
+        start_trace(
+            f"agent_{self._config.name}",
+            task=task,
+            tools=self.tool_registry.list_tools(),
+        )
 
         # Add system prompt
         messages = [Message(role=Role.SYSTEM, content=self._create_system_prompt())]
@@ -197,55 +207,65 @@ class Agent:
         while steps < self.max_steps:
             steps += 1
 
-            if self.verbose:
-                print(f"\n--- Step {steps} ---")
+            with trace_step(
+                f"agent_step_{steps}",
+                step_type="agent_reasoning",
+                step_number=steps,
+            ):
+                if self.verbose:
+                    print(f"\n--- Step {steps} ---")
 
-            # Get LLM response
-            response = self.llm.complete(messages=messages)
-            content = response.content
-
-            if self.verbose:
-                print(f"Assistant: {content}")
-
-            # Add assistant response to messages
-            messages.append(Message(role=Role.ASSISTANT, content=content))
-
-            # Parse response
-            parsed = self._parse_response(content)
-
-            # Check if agent wants to give final answer
-            if parsed["action"].lower() == "final answer":
-                return parsed["action_input"]
-
-            # Execute tool if action is specified
-            if parsed["action"]:
-                tool_name = parsed["action"]
-                tool_input = parsed["action_input"]
+                # Get LLM response
+                response = self.llm.complete(messages=messages)
+                content = response.content
 
                 if self.verbose:
-                    print(f"\nExecuting tool: {tool_name}")
-                    print(f"Input: {tool_input}")
+                    print(f"Assistant: {content}")
 
-                # Execute tool
-                observation = self._execute_tool(tool_name, tool_input)
+                # Add assistant response to messages
+                messages.append(Message(role=Role.ASSISTANT, content=content))
 
-                if self.verbose:
-                    print(f"Observation: {observation}")
+                # Parse response
+                parsed = self._parse_response(content)
 
-                # Add observation to messages
-                observation_msg = f"Observation: {observation}"
-                messages.append(Message(role=Role.USER, content=observation_msg))
-            else:
-                # No action specified, prompt for action
-                messages.append(
-                    Message(
-                        role=Role.USER,
-                        content=(
-                            "Please specify an Action (tool name or "
-                            "'Final Answer') and Action Input."
-                        ),
+                # Check if agent wants to give final answer
+                if parsed["action"].lower() == "final answer":
+                    with trace_step(
+                        "agent_final_answer",
+                        step_type="agent_output",
+                        answer=parsed["action_input"][:200],  # Truncate for trace
+                    ):
+                        return parsed["action_input"]
+
+                # Execute tool if action is specified
+                if parsed["action"]:
+                    tool_name = parsed["action"]
+                    tool_input = parsed["action_input"]
+
+                    if self.verbose:
+                        print(f"\nExecuting tool: {tool_name}")
+                        print(f"Input: {tool_input}")
+
+                    # Execute tool (already traced by Tool.execute)
+                    observation = self._execute_tool(tool_name, tool_input)
+
+                    if self.verbose:
+                        print(f"Observation: {observation}")
+
+                    # Add observation to messages
+                    observation_msg = f"Observation: {observation}"
+                    messages.append(Message(role=Role.USER, content=observation_msg))
+                else:
+                    # No action specified, prompt for action
+                    messages.append(
+                        Message(
+                            role=Role.USER,
+                            content=(
+                                "Please specify an Action (tool name or "
+                                "'Final Answer') and Action Input."
+                            ),
+                        )
                     )
-                )
 
         # Max steps reached
         return (
