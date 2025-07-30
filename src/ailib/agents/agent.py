@@ -51,7 +51,13 @@ class Agent:
         else:
             self.tool_registry = ToolRegistry()
             for tool in tools:
-                self.tool_registry.register(tool)
+                if hasattr(tool, "_tool"):
+                    # Decorated function
+                    self.tool_registry.register(tool._tool)
+                elif isinstance(tool, Tool):
+                    self.tool_registry.register(tool)
+                else:
+                    raise ValueError(f"Invalid tool type: {type(tool)}")
 
     def with_tools(self, *tools: Tool | Callable) -> "Agent":
         """Add tools to the agent.

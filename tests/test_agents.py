@@ -163,6 +163,38 @@ class TestAgent:
 
         assert "search_test" in agent.tool_registry
 
+    def test_agent_with_decorated_functions(self):
+        """Test adding decorated functions as tools (README pattern)."""
+
+        # Create decorated functions like in README
+        @tool
+        def weather_func(city: str) -> str:
+            """Get the weather for a city."""
+            return f"The weather in {city} is sunny and 72°F"
+
+        @tool
+        def calc_func(expression: str) -> float:
+            """Evaluate a mathematical expression."""
+            return eval(expression)
+
+        # Test passing decorated functions directly (as shown in README)
+        agent = Agent(tools=[weather_func, calc_func])
+
+        # Verify tools were registered correctly
+        assert len(agent.tool_registry.get_all_tools()) == 2
+        assert "weather_func" in agent.tool_registry
+        assert "calc_func" in agent.tool_registry
+
+        # Verify tools work
+        weather_tool = agent.tool_registry.get("weather_func")
+        assert (
+            weather_tool.execute(city="Paris")
+            == "The weather in Paris is sunny and 72°F"
+        )
+
+        calc_tool = agent.tool_registry.get("calc_func")
+        assert calc_tool.execute(expression="2 + 3") == 5
+
     def test_agent_run(self):
         """Test running agent with mocked LLM."""
         # Create a custom registry
@@ -250,3 +282,44 @@ Action Input: {"query": "AI agents"}"""
 
         assert "couldn't complete" in result
         assert mock_llm.complete.call_count == 3
+
+
+class TestCreateAgent:
+    """Test create_agent factory function."""
+
+    def test_create_agent_with_decorated_functions(self):
+        """Test create_agent with decorated functions (README pattern)."""
+        from ailib import create_agent
+
+        # Create decorated functions as shown in README
+        @tool
+        def weather(city: str) -> str:
+            """Get the weather for a city."""
+            return f"The weather in {city} is sunny and 72°F"
+
+        @tool
+        def math_eval(expression: str) -> float:
+            """Evaluate a mathematical expression."""
+            return eval(expression)
+
+        # Mock LLM to avoid API key requirement
+        mock_llm = Mock()
+        mock_llm.model = "gpt-4"
+        mock_llm.complete.return_value = CompletionResponse(
+            content="Test",
+            model="gpt-4",
+            usage={"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
+        )
+
+        # Test the exact README pattern
+        agent = create_agent(
+            "assistant",
+            tools=[weather, math_eval],
+            model="gpt-4",
+            llm=mock_llm,  # Pass mock to avoid API key issues
+        )
+
+        # Verify tools were registered
+        assert len(agent.tool_registry.get_all_tools()) == 2
+        assert "weather" in agent.tool_registry
+        assert "math_eval" in agent.tool_registry
