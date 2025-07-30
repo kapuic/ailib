@@ -53,6 +53,19 @@ tracing = [
     "opentelemetry-exporter-otlp",
 ]
 
+anthropic = [
+    "anthropic>=0.20.0",  # Anthropic Claude SDK
+]
+
+ollama = [
+    "ollama-python>=0.1.0",  # Ollama local models
+]
+
+all-providers = [
+    "anthropic>=0.20.0",
+    "ollama-python>=0.1.0",
+]
+
 [project.urls]
 
 bugs = "https://github.com/kapuic/ailib/issues"

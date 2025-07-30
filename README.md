@@ -6,6 +6,7 @@ A simple, intuitive Python SDK for building LLM-powered applications with chains
 
 ## Features
 
+-   🌐 **Multi-Provider Support**: Seamlessly switch between OpenAI, Anthropic Claude, and more (🆕)
 -   🚀 **Simple API**: Inspired by Vercel AI SDK - minimal boilerplate, maximum productivity
 -   🔗 **Chains**: Sequential prompt execution with fluent API
 -   🤖 **Agents**: ReAct-style autonomous agents with tool usage
@@ -20,15 +21,16 @@ A simple, intuitive Python SDK for building LLM-powered applications with chains
 ## Installation
 
 ```bash
-# Basic installation
+# Basic installation (includes OpenAI support)
 pip install ailib
 
-# With all optional dependencies
-pip install ailib[all]
+# Install specific LLM providers
+pip install ailib[anthropic]      # For Claude support
+pip install ailib[all-providers]  # Install all supported providers
 
-# With specific extras
-pip install ailib[dev,test]  # For development
-pip install ailib[tracing]   # For advanced tracing
+# Development and testing
+pip install ailib[dev,test]       # For development
+pip install ailib[tracing]        # For advanced tracing
 ```
 
 ### Development Setup
@@ -79,10 +81,11 @@ Start with the **[Tutorial Index](examples/tutorials/00_index.ipynb)** for a gui
 ### Simple Completion
 
 ```python
-from ailib import OpenAIClient, Prompt
+from ailib import create_client, Prompt
 
-# Initialize client
-client = OpenAIClient(model="gpt-3.5-turbo")
+# Initialize client - auto-detects provider from model name
+client = create_client("gpt-3.5-turbo")  # OpenAI
+# client = create_client("claude-3-opus-20240229")  # Anthropic
 
 # Create prompt
 prompt = Prompt()
@@ -93,6 +96,44 @@ prompt.add_user("What is the capital of France?")
 response = client.complete(prompt.build())
 print(response.content)
 ```
+
+### Multi-Provider Support 🆕
+
+AILib supports 15+ LLM providers through OpenAI-compatible APIs and custom implementations:
+
+```python
+from ailib import create_client, create_agent, list_providers
+
+# Many providers work with just a base URL change!
+client = create_client("gpt-4")  # OpenAI (default)
+client = create_client("mistralai/Mixtral-8x7B-Instruct-v0.1")  # Together
+client = create_client("llama-2-70b", provider="groq")  # Groq (fast inference)
+
+# Local models
+client = create_client(
+    model="llama2",
+    base_url="http://localhost:11434/v1"  # Ollama
+)
+
+# Create agents with any provider
+agent = create_agent("assistant", model="gpt-4")
+agent = create_agent("assistant", model="claude-3-opus-20240229")  # Anthropic
+agent = create_agent("assistant", provider="together", model="llama-2-70b")
+```
+
+**Supported Providers:**
+
+-   ✅ **OpenAI** - GPT-4, GPT-3.5
+-   ✅ **Anthropic** - Claude 3 (Opus, Sonnet, Haiku)
+-   ✅ **Local** - Ollama, LM Studio, llama.cpp
+-   ✅ **Groq** - Fast inference for open models
+-   ✅ **Perplexity** - Online models with web search
+-   ✅ **DeepSeek** - DeepSeek-V2, DeepSeek-Coder
+-   ✅ **Together** - Open models (Llama, Mixtral, etc.)
+-   ✅ **Anyscale** - Scalable open model hosting
+-   ✅ **Fireworks** - Fast open model inference
+-   ✅ **Moonshot** - Kimi models
+-   🔄 More coming soon...
 
 ### Using Chains - The Easy Way
 
@@ -214,6 +255,7 @@ AILib follows the philosophy of **Vercel AI SDK** rather than LangChain:
 
 -   **Simple by default**: Start with one line of code, not pages of configuration
 -   **Progressive disclosure**: Complexity is available when you need it, hidden when you don't
+-   **Multi-provider**: Switch between OpenAI, Anthropic, and more with a single parameter
 -   **Type-safe**: Full TypeScript-style type hints and optional runtime validation
 -   **Production-ready**: Built-in safety, tracing, and error handling
 
@@ -482,13 +524,14 @@ Contributions are welcome! Please see CONTRIBUTING.md for guidelines.
 AILib is under active development. Current version includes:
 
 -   ✅ Core LLM client abstractions
+-   ✅ Multi-provider support (OpenAI, Anthropic) 🆕
 -   ✅ Chain and agent implementations
 -   ✅ Tool system with decorators
 -   ✅ Session management
 -   ✅ Safety and moderation hooks
 -   ✅ Comprehensive tracing
 -   ✅ Full async support
--   🔄 More LLM providers (coming soon)
+-   🔄 More LLM providers (Ollama, Google Gemini - coming soon)
 -   🔄 Vector store integrations (coming soon)
 -   🔄 Streaming support (coming soon)
 

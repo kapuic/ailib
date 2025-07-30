@@ -272,6 +272,7 @@ class Agent:
 def create_agent(
     name: str = "assistant",
     model: str = "gpt-4",
+    provider: str | None = None,
     instructions: str | None = None,
     tools: list[Tool | Callable] | None = None,
     verbose: bool = False,
@@ -280,22 +281,38 @@ def create_agent(
     """Create an agent with simplified configuration.
 
     This is the recommended way to create agents - simple and functional.
+    Now supports multiple LLM providers!
 
     Args:
         name: Agent name/identifier
         model: LLM model to use (default: gpt-4)
+        provider: LLM provider (optional - auto-detected from model name)
         instructions: Custom system instructions
         tools: List of tools (Tool instances or @tool decorated functions)
         verbose: Enable verbose output
-        **kwargs: Additional options (temperature, max_steps, etc.)
+        **kwargs: Additional options (temperature, max_steps, api_key, etc.)
 
     Returns:
         Configured Agent instance ready to use
 
     Example:
-        # Simple agent
+        # Simple agent with OpenAI (auto-detected)
         agent = create_agent("assistant")
         result = agent.run("What's the weather?")
+
+        # Agent with Claude
+        agent = create_agent(
+            "assistant",
+            model="claude-3-opus-20240229",
+            api_key="your-anthropic-key"  # or set ANTHROPIC_API_KEY
+        )
+
+        # Explicit provider
+        agent = create_agent(
+            "assistant",
+            model="gpt-4",
+            provider="openai"
+        )
 
         # With tools
         @tool
@@ -308,7 +325,7 @@ def create_agent(
             instructions="You are a helpful research assistant."
         )
     """
-    from ..core import OpenAIClient
+    from ..core import create_client
 
     # Extract LLM-specific kwargs
     llm_kwargs = {}
@@ -327,7 +344,7 @@ def create_agent(
     # Create LLM client if not provided
     llm = kwargs.pop("llm", None)
     if llm is None:
-        llm = OpenAIClient(model=model, **llm_kwargs)
+        llm = create_client(model=model, provider=provider, **llm_kwargs)
 
     # Set custom instructions if provided
     if instructions:

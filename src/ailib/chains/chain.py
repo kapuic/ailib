@@ -353,36 +353,57 @@ class Chain:
 
 # Convenience function for quick chain creation
 def create_chain(
-    *prompts: str, llm: LLMClient | None = None, model: str = "gpt-4", **kwargs
+    *prompts: str,
+    llm: LLMClient | None = None,
+    model: str = "gpt-4",
+    provider: str | None = None,
+    **kwargs,
 ) -> Chain:
     """Create a simple chain from a sequence of prompts.
 
     This is the recommended way to create chains - simple and functional.
+    Now supports multiple LLM providers!
 
     Args:
-        llm: LLM client to use (optional - will create one if not provided)
         *prompts: Sequence of prompts
+        llm: LLM client to use (optional - will create one if not provided)
         model: Model to use if creating LLM client (default: gpt-4)
+        provider: LLM provider (optional - auto-detected from model name)
         **kwargs: Additional options for chain or LLM client
 
     Returns:
         Configured Chain instance
 
     Example:
-        # Simple chain with auto-created client
+        # Simple chain with auto-created OpenAI client
         chain = create_chain(
             "Translate to Spanish: {text}",
             "Now make it more formal"
         )
         result = chain.run(text="Hello friend")
 
+        # Chain with Claude
+        chain = create_chain(
+            "Summarize this text: {text}",
+            "List 3 key points",
+            model="claude-3-opus-20240229",
+            api_key="your-anthropic-key"  # or set ANTHROPIC_API_KEY
+        )
+
+        # Explicit provider
+        chain = create_chain(
+            "Analyze: {text}",
+            model="gpt-4",
+            provider="openai"
+        )
+
         # With custom client
         client = OpenAIClient(model="gpt-3.5-turbo")
-        chain = create_chain(client, "Summarize: {text}")
+        chain = create_chain("Summarize: {text}", llm=client)
     """
     # Create LLM client if not provided
     if llm is None:
-        from ..core import OpenAIClient
+        from ..core import create_client
 
         # Extract LLM-specific kwargs
         llm_kwargs = {}
@@ -390,7 +411,7 @@ def create_chain(
             if key in kwargs:
                 llm_kwargs[key] = kwargs.pop(key)
 
-        llm = OpenAIClient(model=model, **llm_kwargs)
+        llm = create_client(model=model, provider=provider, **llm_kwargs)
 
     # Validate configuration before creating chain
     from .._validation import ChainConfig
