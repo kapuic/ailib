@@ -128,6 +128,9 @@ MODEL_PROVIDERS = {
     "teknium/": "together",
     # Groq models
     "groq/": "groq",
+    "mixtral-8x7b": "groq",  # More specific
+    "llama2-70b-4096": "groq",  # More specific
+    "gemma-7b-it": "groq",  # More specific
     # Perplexity models
     "sonar": "perplexity",
     "pplx": "perplexity",
@@ -139,6 +142,16 @@ MODEL_PROVIDERS = {
     "local": "local",
     "gguf": "ollama",
     "ggml": "ollama",
+    "llama2": "ollama",
+    "mistral": "ollama",
+    "codellama": "ollama",
+    "phi": "ollama",
+    "neural-chat": "ollama",
+    "starling": "ollama",
+    "orca": "ollama",
+    "vicuna": "ollama",
+    "llava": "ollama",
+    "gemma:": "ollama",  # Note: gemma without colon goes to groq
 }
 
 
@@ -183,5 +196,8 @@ def is_openai_compatible(provider: str) -> bool:
     Returns:
         True if OpenAI-compatible, False otherwise
     """
+    if provider == "openai":
+        return False  # OpenAI is the original, not "compatible"
+
     config = get_provider_config(provider)
     return config and not config.requires_separate_client

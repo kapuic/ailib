@@ -76,10 +76,11 @@ def create_client(
         )
     """
     # Handle provider detection
-    if provider is None and model:
-        provider = detect_provider(model)
-    elif provider is None and model is None:
-        provider = "openai"  # Default provider
+    if provider is None:
+        if model:
+            provider = detect_provider(model)
+        else:
+            provider = "openai"  # Default provider
 
     provider = provider.lower()
 
@@ -105,8 +106,8 @@ def create_client(
         api_key = os.getenv(config.api_key_env)
 
     # Create appropriate client
-    if is_openai_compatible(provider):
-        # Use OpenAI client for compatible providers
+    if provider == "openai" or is_openai_compatible(provider):
+        # Use OpenAI client for OpenAI and compatible providers
         return OpenAIClient(model=model, api_key=api_key, base_url=base_url, **kwargs)
     else:
         # Use provider-specific client
