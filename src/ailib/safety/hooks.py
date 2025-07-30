@@ -14,7 +14,7 @@ _global_rate_limiter: RateLimiter | None = None
 def enable_safety(
     block_harmful: bool = True,
     max_length: int = 4000,
-    sensitive_topics: list[str] | None = None,
+    blocked_words: list[str] | None = None,
     custom_filters: list[str] | None = None,
     rate_limit: int | None = None,
 ):
@@ -26,7 +26,7 @@ def enable_safety(
     Args:
         block_harmful: Block potentially harmful content
         max_length: Maximum output length
-        sensitive_topics: Topics to monitor/block
+        blocked_words: Topics to monitor/block
         custom_filters: Regex patterns to block
         rate_limit: Requests per minute limit
 
@@ -36,7 +36,7 @@ def enable_safety(
 
         # Customize safety
         enable_safety(
-            sensitive_topics=["medical", "legal"],
+            blocked_words=["medical", "legal"],
             rate_limit=30
         )
     """
@@ -46,7 +46,7 @@ def enable_safety(
         enabled=True,
         block_harmful_content=block_harmful,
         max_output_length=max_length,
-        sensitive_topics=sensitive_topics or [],
+        blocked_words=blocked_words or [],
         custom_filters=custom_filters or [],
     )
 

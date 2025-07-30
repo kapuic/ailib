@@ -77,16 +77,16 @@ class SafetyChecker:
                     )
                 )
 
-        # Check sensitive topics
+        # Check blocked words
         content_lower = content.lower()
-        for topic in self.config.sensitive_topics:
-            if topic.lower() in content_lower:
+        for word in self.config.blocked_words:
+            if word.lower() in content_lower:
                 violations.append(
                     SafetyViolation(
-                        type="sensitive_topic",
+                        type="blocked_word",
                         severity="medium",
-                        message=f"Content contains sensitive topic: {topic}",
-                        details={"topic": topic},
+                        message=f"Content contains blocked word: {word}",
+                        details={"word": word},
                     )
                 )
 

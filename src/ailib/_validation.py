@@ -296,8 +296,9 @@ class SafetyConfig(BaseModel):
     block_harmful_content: bool = Field(
         default=True, description="Block potentially harmful content"
     )
-    sensitive_topics: list[str] = Field(
-        default_factory=list, description="List of sensitive topics to monitor"
+    blocked_words: list[str] = Field(
+        default_factory=list,
+        description="List of words/phrases to block (substring matching)",
     )
     max_output_length: int = Field(
         default=4000, gt=0, description="Maximum output length"

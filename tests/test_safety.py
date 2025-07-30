@@ -35,19 +35,19 @@ class TestSafetyChecker:
         assert len(violations) == 1
         assert violations[0].type == "length_exceeded"
 
-    def test_sensitive_topics(self):
-        """Test sensitive topic detection."""
-        config = SafetyConfig(sensitive_topics=["medical", "legal"])
+    def test_blocked_words(self):
+        """Test blocked word detection."""
+        config = SafetyConfig(blocked_words=["medical", "legal"])
         checker = SafetyChecker(config)
 
         # Normal content passes
         violations = checker.check_content("Let's talk about Python")
         assert len(violations) == 0
 
-        # Sensitive topic detected
+        # Blocked word detected
         violations = checker.check_content("I need medical advice")
         assert len(violations) == 1
-        assert violations[0].type == "sensitive_topic"
+        assert violations[0].type == "blocked_word"
 
     def test_custom_regex_filters(self):
         """Test custom regex pattern matching."""
@@ -65,7 +65,7 @@ class TestSafetyChecker:
 
     def test_disabled_safety(self):
         """Test that disabled safety returns no violations."""
-        config = SafetyConfig(enabled=False, sensitive_topics=["test"])
+        config = SafetyConfig(enabled=False, blocked_words=["test"])
         checker = SafetyChecker(config)
 
         # Even "unsafe" content passes when disabled
@@ -115,7 +115,7 @@ class TestPublicAPI:
     def test_enable_disable_safety(self):
         """Test enabling and disabling safety."""
         # Enable with custom settings
-        enable_safety(max_length=100, sensitive_topics=["test"])
+        enable_safety(max_length=100, blocked_words=["test"])
 
         # Long content should be flagged
         is_safe, violations = check_content("x" * 200)
@@ -170,7 +170,7 @@ class TestIntegration:
         """Test comprehensive content checking."""
         enable_safety(
             max_length=50,
-            sensitive_topics=["confidential"],
+            blocked_words=["confidential"],
             custom_filters=[r"\d{3}-\d{3}-\d{4}"],  # Phone pattern
             rate_limit=10,
         )
@@ -190,7 +190,7 @@ class TestIntegration:
     def test_combined_violations(self):
         """Test content with multiple violations."""
         enable_safety(
-            max_length=20, sensitive_topics=["secret"], custom_filters=[r"test\d+"]
+            max_length=20, blocked_words=["secret"], custom_filters=[r"test\d+"]
         )
 
         # Content with multiple issues

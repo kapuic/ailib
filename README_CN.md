@@ -192,7 +192,7 @@ from ailib.safety import enable_safety, with_moderation
 enable_safety(
     block_harmful=True,
     max_length=4000,
-    sensitive_topics=["暴力", "仇恨"]
+    blocked_words=["暴力", "仇恨"]
 )
 
 # 使用 OpenAI 审核

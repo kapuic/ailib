@@ -343,7 +343,7 @@ from ailib.safety import enable_safety, with_moderation
 enable_safety(
     block_harmful=True,
     max_length=4000,
-    sensitive_topics=["violence", "hate"]
+    blocked_words=["violence", "hate"]
 )
 
 # Use with OpenAI moderation

@@ -32,12 +32,12 @@ def custom_safety_configuration():
 
     # Configure safety in one line
     enable_safety(
-        sensitive_topics=["medical", "legal", "financial"],
+        blocked_words=["medical", "legal", "financial"],
         max_length=1000,
         rate_limit=30,  # 30 requests per minute
     )
 
-    # Test sensitive topic detection
+    # Test blocked word detection
     medical_text = "I have a medical condition and need advice"
     is_safe, violations = check_content(medical_text)
     print(f"Medical text safety: {is_safe}")
@@ -120,7 +120,7 @@ def integrated_example():
 
     # Configure safety for a chatbot
     enable_safety(
-        sensitive_topics=["personal information", "passwords"],
+        blocked_words=["personal information", "passwords"],
         custom_filters=[
             r"\b(password|secret|key)\b",  # Block potential secrets
             r"\d{3}-\d{2}-\d{4}",  # Block SSN patterns
