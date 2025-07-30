@@ -51,7 +51,7 @@ class OpenAIClient(LLMClient):
             # Fallback for unknown models
             self._encoding = tiktoken.get_encoding("cl100k_base")
 
-    def complete(
+    def _complete_impl(
         self,
         messages: list[Message],
         temperature: float = 0.7,

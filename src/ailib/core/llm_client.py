@@ -69,7 +69,6 @@ class LLMClient(ABC):
         self.model = config.model
         self.config = config.model_dump(exclude={"model"})
 
-    @abstractmethod
     def complete(
         self,
         messages: list[Message],
@@ -92,6 +91,54 @@ class LLMClient(ABC):
         Returns:
             CompletionResponse with generated content
         """
+        # Apply safety hooks if available
+        from ..safety.hooks import _internal_post_hook, _internal_pre_hook
+
+        # Pre-process the prompt
+        if messages:
+            last_message = messages[-1]
+            if last_message.content:
+                try:
+                    checked_content = _internal_pre_hook(
+                        last_message.content, user_id=kwargs.get("user_id")
+                    )
+                    # Update the content if modified
+                    if checked_content != last_message.content:
+                        messages = messages[:-1] + [
+                            Message(role=last_message.role, content=checked_content)
+                        ]
+                except ValueError as e:
+                    # Safety check failed
+                    return CompletionResponse(
+                        content=str(e),
+                        model=self.model,
+                        usage={
+                            "prompt_tokens": 0,
+                            "completion_tokens": 0,
+                            "total_tokens": 0,
+                        },
+                        finish_reason="safety",
+                    )
+
+        # Call the actual implementation
+        response = self._complete_impl(
+            messages, temperature, max_tokens, tools, tool_choice, **kwargs
+        )
+
+        # Post-process the response
+        return _internal_post_hook(response, **kwargs)
+
+    @abstractmethod
+    def _complete_impl(
+        self,
+        messages: list[Message],
+        temperature: float = 0.7,
+        max_tokens: int | None = None,
+        tools: list[dict[str, Any]] | None = None,
+        tool_choice: str | dict[str, Any] | None = None,
+        **kwargs,
+    ) -> CompletionResponse:
+        """Actual implementation of completion - to be overridden by subclasses."""
         pass
 
     @abstractmethod

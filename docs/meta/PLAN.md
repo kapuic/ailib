@@ -12,7 +12,7 @@ This was originally posted as a technical assessment to a well-known and respect
 
 Obviously, all requirements above must be met. The requirement mentions a report and a demo, and I'm doing both. Report is in `docs/meta/RESEARCH.md`, and we're working on the demo right now. But to impress the recruiters, I decided to go above and beyond the requirements. We're going to make a production-ready, test-proof, and well-documented Python SDK.
 
-Basically, the assessment asks us to "rebuild LangChain". Although, I don't like LangChain for some reasons, including that its syntax is too verbose,
+Basically, the assessment asks us to "rebuild LangChain". Although, I don't like LangChain for some reasons, including that its syntax is too verbose. Thus, we want to design the module to mimic Vercel AI SDK. The differences of these two SDKs are outlined in [](./ANALOGY.md).
 
 ## 1. Objectives & Scope
 
