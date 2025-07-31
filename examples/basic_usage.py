@@ -1,182 +1,173 @@
-"""Basic usage examples for AILib."""
+"""Basic usage examples for AILib - Simple by default, powerful when needed."""
 
 import os
 
-from ailib import Agent, Chain, OpenAIClient, Prompt, PromptTemplate, Session, tool
+from ailib import Message, Role, create_agent, create_chain, create_session, tool
 
 
-def example_simple_completion():
-    """Example: Simple LLM completion."""
-    print("=== Simple Completion ===")
+def example_simplest_chain():
+    """Example: The simplest way to use AILib."""
+    print("=== Simplest Usage ===")
 
-    # Initialize OpenAI client
-    client = OpenAIClient(model="gpt-3.5-turbo")
+    # One line to create and run a chain!
+    chain = create_chain("Translate to French: {text}")
+    result = chain.run(text="Hello world")
+    print(f"Translation: {result}")
 
-    # Create messages
-    prompt = Prompt()
-    prompt.add_system("You are a helpful assistant.")
-    prompt.add_user("What is the capital of France?")
-
-    # Get completion
-    response = client.complete(prompt.build())
-    print(f"Response: {response.content}")
-    print(f"Tokens used: {response.usage['total_tokens']}")
-
-
-def example_prompt_templates():
-    """Example: Using prompt templates."""
-    print("\n=== Prompt Templates ===")
-
-    # Create a template
-    template = PromptTemplate(
-        "Translate the following {language} text to English: {text}"
+    # Multi-step chain - still simple!
+    story_chain = create_chain(
+        "Write a one-sentence story about {topic}",
+        "Now make it more dramatic",
+        "Add a plot twist",
     )
-
-    # Format the template
-    formatted = template.format(language="French", text="Bonjour le monde")
-    print(f"Formatted prompt: {formatted}")
-
-    # Use with LLM
-    client = OpenAIClient(model="gpt-3.5-turbo")
-    messages = Prompt.from_template(
-        template.template, language="Spanish", text="Hola mundo"
-    )
-
-    response = client.complete(messages)
-    print(f"Translation: {response.content}")
+    result = story_chain.run(topic="a lost cat")
+    print(f"\nStory: {result}")
 
 
-def example_chains():
-    """Example: Using chains for multi-step reasoning."""
-    print("\n=== Chains ===")
+def example_simplest_agent():
+    """Example: The simplest way to create an agent."""
+    print("\n=== Simplest Agent ===")
 
-    client = OpenAIClient(model="gpt-3.5-turbo")
-
-    # Create a chain for a multi-step process
-    chain = (
-        Chain(client)
-        .add_system("You are a helpful assistant.")
-        .add_user("What is the capital of France?", name="capital_question")
-        .add_user(
-            "What is the population of {capital_question}?", name="population_question"
-        )
-    )
-
-    # Run the chain
-    result = chain.run()
-    print(f"Final result: {result}")
-
-
-def example_tools_and_agents():
-    """Example: Creating tools and using agents."""
-    print("\n=== Tools and Agents ===")
-
-    # Define custom tools
+    # Define a tool with a simple decorator
     @tool
     def weather(city: str) -> str:
         """Get the weather for a city."""
-        # In real implementation, this would call a weather API
         return f"The weather in {city} is sunny and 72°F"
 
+    # Create agent in one line
+    agent = create_agent("weather assistant", tools=[weather])
+
+    # Use it
+    result = agent.run("What's the weather in Paris?")
+    print(f"Agent response: {result}")
+
+
+def example_session_simple():
+    """Example: Simple conversation management."""
+    print("\n=== Simple Session ===")
+
+    # Create a session
+    session = create_session()
+
+    # Add messages naturally
+    session.add_message(Message(role=Role.USER, content="Tell me a joke"))
+    session.add_message(
+        Message(
+            role=Role.ASSISTANT,
+            content="Why don't scientists trust atoms? They make up everything!",
+        )
+    )
+    session.add_message(Message(role=Role.USER, content="That's funny! Another one?"))
+
+    # Use with a chain
+    chain = create_chain("You are a comedian. Continue this conversation: {history}")
+    messages = "\n".join(
+        [f"{m.role.value}: {m.content}" for m in session.get_messages()]
+    )
+    result = chain.run(history=messages)
+    print(f"Next joke: {result}")
+
+
+def example_progressive_complexity():
+    """Example: Add complexity only when needed."""
+    print("\n=== Progressive Complexity ===")
+
+    # Start simple
+    create_agent("assistant")
+    print("✓ Basic agent created")
+
+    # Add model when needed
+    create_agent("assistant", model="gpt-3.5-turbo")
+    print("✓ Agent with custom model")
+
+    # Add instructions when needed
+    create_agent(
+        "assistant",
+        model="gpt-3.5-turbo",
+        instructions="You are a helpful coding assistant. Keep answers concise.",
+    )
+    print("✓ Agent with instructions")
+
+    # Add tools when needed
     @tool
-    def calculator(expression: str) -> float:
+    def calculate(expression: str) -> float:
         """Evaluate a mathematical expression."""
-        try:
-            # Safe evaluation of simple math
-            result = eval(expression, {"__builtins__": {}}, {})
-            return float(result)
-        except Exception as e:
-            return f"Error: {str(e)}"
+        return eval(expression, {"__builtins__": {}}, {})
 
-    # Create an agent with tools
-    client = OpenAIClient(model="gpt-4")
-    agent = Agent(llm=client, verbose=True)
-    agent.with_tools(weather, calculator)
-
-    # Run the agent
-    result = agent.run(
-        "What's the weather in Paris? Also, calculate 15% tip on a $85 bill."
+    create_agent(
+        "calculator", tools=[calculate], instructions="Help users with math problems."
     )
-    print(f"\nFinal answer: {result}")
+    print("✓ Agent with tools")
 
 
-def example_session_management():
-    """Example: Using sessions for conversation history."""
-    print("\n=== Session Management ===")
+def example_templates_when_needed():
+    """Example: Templates are available but not required."""
+    print("\n=== Templates (Optional) ===")
 
-    client = OpenAIClient(model="gpt-3.5-turbo")
-    session = Session()
+    # Most of the time, inline templates are enough
+    chain = create_chain("Summarize in {style} style: {text}")
+    result = chain.run(style="academic", text="AI is changing the world...")
+    print(f"Inline template result: {result[:50]}...")
 
-    # Add system message
-    session.add_system_message("You are a helpful math tutor.")
-
-    # First interaction
-    session.add_user_message("What is the Pythagorean theorem?")
-    response = client.complete(session.get_messages())
-    session.add_assistant_message(response.content)
-    print(f"Assistant: {response.content}")
-
-    # Follow-up question (with context)
-    session.add_user_message("Can you give me an example?")
-    response = client.complete(session.get_messages())
-    session.add_assistant_message(response.content)
-    print(f"\nAssistant: {response.content}")
-
-    # Store information in session memory
-    session.set_memory("topic", "Pythagorean theorem")
-    session.set_memory("examples_given", 1)
-
-    print(f"\nSession info: {session}")
+    # For complex cases, PromptTemplate is available
+    print("\n✓ PromptTemplate is available for complex cases")
+    print("  from ailib import PromptTemplate")
+    print("  template = PromptTemplate(...)")
+    print("  But most users won't need it!")
 
 
-def example_chain_with_processing():
-    """Example: Chain with custom processing functions."""
-    print("\n=== Chain with Processing ===")
+def example_real_world():
+    """Example: Real-world usage pattern."""
+    print("\n=== Real World Example ===")
 
-    client = OpenAIClient(model="gpt-3.5-turbo")
+    # Customer service bot in just a few lines
+    @tool
+    def check_order(order_id: str) -> str:
+        """Check order status."""
+        # In real app, this would query a database
+        return f"Order {order_id} is being shipped"
 
-    # Define processors
-    def extract_number(text: str) -> int:
-        """Extract the first number from text."""
-        import re
+    @tool
+    def refund_policy() -> str:
+        """Get refund policy."""
+        return "30-day money back guarantee on all items"
 
-        match = re.search(r"\d+", text)
-        return int(match.group()) if match else 0
-
-    def to_uppercase(text: str) -> str:
-        """Convert text to uppercase."""
-        return text.upper()
-
-    # Create chain with processors
-    chain = (
-        Chain(client)
-        .add_system("You are a helpful assistant.")
-        .add_user(
-            "How many states are in the USA?",
-            processor=extract_number,
-            name="num_states",
-        )
-        .add_user(
-            "Name any {num_states} US cities", processor=to_uppercase, name="cities"
-        )
+    # Create the bot
+    support_bot = create_agent(
+        "customer support",
+        tools=[check_order, refund_policy],
+        instructions="You are a helpful customer service agent. Be polite.",
     )
 
-    result = chain.run()
-    print(f"Cities (uppercase): {result}")
+    # Handle customer queries
+    queries = ["What's the status of order #12345?", "What's your refund policy?"]
+
+    for query in queries:
+        print(f"\nCustomer: {query}")
+        response = support_bot.run(query)
+        print(f"Bot: {response}")
 
 
 if __name__ == "__main__":
-    # Make sure OPENAI_API_KEY is set
+    # Check for API key
     if not os.getenv("OPENAI_API_KEY"):
         print("Please set OPENAI_API_KEY environment variable")
+        print("\nBut you can still see how simple the API is!")
+        print("Check the code examples above ☝️")
         exit(1)
 
-    # Run examples
-    example_simple_completion()
-    example_prompt_templates()
-    example_chains()
-    example_session_management()
-    example_chain_with_processing()
+    print("AILib Basic Usage Examples")
+    print("=" * 50)
+    print("Design Philosophy: Simple by default, powerful when needed\n")
 
-    # Note: Agent example might use more tokens
-    # example_tools_and_agents()
+    # Run examples
+    example_simplest_chain()
+    example_simplest_agent()
+    example_session_simple()
+    example_progressive_complexity()
+    example_templates_when_needed()
+    example_real_world()
+
+    print("\n" + "=" * 50)
+    print("✨ That's it! AILib makes AI development simple.")
+    print("No boilerplate, no complexity - just results.")

@@ -4,6 +4,13 @@ A simple, intuitive Python SDK for building LLM-powered applications with chains
 
 **Philosophy**: Simplicity of Vercel AI SDK + Power of LangChain = AILib 🚀
 
+```python
+# This is all you need to get started!
+from ailib import create_chain
+chain = create_chain("Translate to {language}: {text}")
+result = chain.run(language="Spanish", text="Hello world")
+```
+
 ## Features
 
 -   🌐 **Multi-Provider Support**: Seamlessly switch between OpenAI, Anthropic Claude, and more (🆕)
@@ -78,21 +85,47 @@ Start with the **[Tutorial Index](examples/tutorials/00_index.ipynb)** for a gui
 
 ## Quick Start
 
-### Simple Completion
+### The Simplest Way
+
+```python
+from ailib import create_chain
+
+# One line to create and run a chain!
+chain = create_chain("Translate to French: {text}")
+result = chain.run(text="Hello world")
+print(result)  # "Bonjour le monde"
+```
+
+### Creating Agents
+
+```python
+from ailib import create_agent, tool
+
+# Define a tool
+@tool
+def weather(city: str) -> str:
+    """Get weather for a city."""
+    return f"Sunny, 72°F in {city}"
+
+# Create agent with tools
+agent = create_agent("assistant", tools=[weather])
+result = agent.run("What's the weather in Paris?")
+```
+
+### When You Need More Control
 
 ```python
 from ailib import create_client, Prompt
 
-# Initialize client - auto-detects provider from model name
+# Only use explicit clients when you need specific control
 client = create_client("gpt-3.5-turbo")  # OpenAI
 # client = create_client("claude-3-opus-20240229")  # Anthropic
 
-# Create prompt
+# Build prompts programmatically
 prompt = Prompt()
 prompt.add_system("You are a helpful assistant.")
 prompt.add_user("What is the capital of France?")
 
-# Get completion
 response = client.complete(prompt.build())
 print(response.content)
 ```
