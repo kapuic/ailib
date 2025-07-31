@@ -16,6 +16,7 @@ result = chain.run(language="Spanish", text="Hello world")
 -   🌐 **Multi-Provider Support**: Seamlessly switch between OpenAI, Anthropic Claude, and more (🆕)
 -   🚀 **Simple API**: Inspired by Vercel AI SDK - minimal boilerplate, maximum productivity
 -   🔗 **Chains**: Sequential prompt execution with fluent API
+-   🔄 **Workflows**: Advanced orchestration with conditional logic, loops, and parallel execution (🆕)
 -   🤖 **Agents**: ReAct-style autonomous agents with tool usage
 -   🛠️ **Tools**: Easy tool creation with decorators and type safety
 -   📝 **Templates**: Powerful prompt templating system
@@ -79,9 +80,12 @@ Comprehensive tutorials are available in the `examples/tutorials/` directory:
 9. **[Advanced Features](examples/tutorials/09_advanced_features.ipynb)** - Async, streaming, and optimization
 10. **[Real-World Examples](examples/tutorials/10_real_world_examples.ipynb)** - Complete applications
 
-Start with the **[Tutorial Index](examples/tutorials/00_index.ipynb)** for a guided learning path.
+🆕 **New Tutorials**:
 
-🆕 **New**: Check out our [simplified API examples](examples/simplified_api_example.py) showcasing the new factory functions!
+-   **[Workflows](examples/tutorials/14_workflows.ipynb)** - Complex orchestration with conditional logic, loops, and parallel execution
+-   **[Simplified API](examples/simplified_api_example.py)** - Showcasing the new factory functions
+
+Start with the **[Tutorial Index](examples/tutorials/00_index.ipynb)** for a guided learning path.
 
 ## Quick Start
 
@@ -110,6 +114,23 @@ def weather(city: str) -> str:
 # Create agent with tools
 agent = create_agent("assistant", tools=[weather])
 result = agent.run("What's the weather in Paris?")
+```
+
+### Building Workflows 🆕
+
+```python
+from ailib import create_workflow
+
+# Create a smart workflow with logic
+workflow = (
+    create_workflow()
+    .step("Analyze sentiment: {text}")
+    .if_(lambda r: "positive" in r.lower())
+    .then("Write a thank you note")
+    .else_("Offer assistance and escalate")
+)
+
+result = workflow.run(text="Your product is amazing!")
 ```
 
 ### When You Need More Control

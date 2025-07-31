@@ -26,6 +26,9 @@ from .core import (
     list_providers,
 )
 
+# Workflows imports
+from .workflows import create_workflow, create_workflow_template
+
 # Import AnthropicClient if available
 try:
     from .core import AnthropicClient
@@ -55,6 +58,9 @@ __all__ = [
     "Chain",
     "ChainStep",
     "create_chain",
+    # Workflows
+    "create_workflow",
+    "create_workflow_template",
     # Agents
     "Agent",
     "create_agent",

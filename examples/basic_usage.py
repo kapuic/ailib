@@ -2,7 +2,15 @@
 
 import os
 
-from ailib import Message, Role, create_agent, create_chain, create_session, tool
+from ailib import (
+    Message,
+    Role,
+    create_agent,
+    create_chain,
+    create_session,
+    create_workflow,
+    tool,
+)
 
 
 def example_simplest_chain():
@@ -116,6 +124,27 @@ def example_templates_when_needed():
     print("  But most users won't need it!")
 
 
+def example_simplest_workflow():
+    """Example: The simplest way to use workflows."""
+    print("\n=== Simplest Workflow ===")
+
+    # One-line workflow - just like chains!
+    workflow = create_workflow("Write a haiku about Python")
+    result = workflow.run()
+    print(f"Haiku: {result}")
+
+    # Add logic when needed
+    smart_workflow = (
+        create_workflow()
+        .step("Analyze sentiment: {text}")
+        .if_(lambda r: "positive" in r.lower())
+        .then("Write a thank you note")
+        .else_("Offer assistance")
+    )
+    result = smart_workflow.run(text="Your product is amazing!")
+    print(f"\nResponse: {result}")
+
+
 def example_real_world():
     """Example: Real-world usage pattern."""
     print("\n=== Real World Example ===")
@@ -162,6 +191,7 @@ if __name__ == "__main__":
 
     # Run examples
     example_simplest_chain()
+    example_simplest_workflow()
     example_simplest_agent()
     example_session_simple()
     example_progressive_complexity()
